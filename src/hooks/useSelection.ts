@@ -25,6 +25,25 @@ function getCanvasPoint(
 }
 
 /**
+ * タッチ座標をCanvas要素の座標系に変換する。
+ * CSSスケーリングを考慮する。
+ */
+function getCanvasTouchPoint(
+  e: React.TouchEvent<HTMLCanvasElement>
+): { x: number; y: number } | null {
+  const touch = e.touches[0] ?? e.changedTouches[0];
+  if (!touch) return null;
+  const canvas = e.currentTarget;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return {
+    x: (touch.clientX - rect.left) * scaleX,
+    y: (touch.clientY - rect.top) * scaleY,
+  };
+}
+
+/**
  * 2点から正規化された矩形（x, y は常に左上）を作成する。
  */
 function normalizeRect(
@@ -41,9 +60,10 @@ function normalizeRect(
 
 /**
  * Canvas上でのマウスドラッグ矩形選択を管理するフック。
+ * タッチ操作（タブレット等）にも対応する。
  *
  * @param onSelect 選択確定時に呼ばれるコールバック
- * @returns マウスイベントハンドラと選択状態
+ * @returns マウス・タッチイベントハンドラと選択状態
  */
 export function useSelection(onSelect: (rect: Rect) => void): UseSelectionReturn {
   const startPoint = useRef<{ x: number; y: number } | null>(null);
@@ -80,11 +100,46 @@ export function useSelection(onSelect: (rect: Rect) => void): UseSelectionReturn
     [onSelect]
   );
 
+  const onTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const point = getCanvasTouchPoint(e);
+    if (!point) return;
+    startPoint.current = point;
+    setDraft(null);
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    if (!startPoint.current) return;
+    const point = getCanvasTouchPoint(e);
+    if (!point) return;
+    setDraft(normalizeRect(startPoint.current, point));
+  }, []);
+
+  const onTouchEnd = useCallback(
+    (e: React.TouchEvent<HTMLCanvasElement>) => {
+      e.preventDefault();
+      if (!startPoint.current) return;
+      const point = getCanvasTouchPoint(e);
+      if (!point) return;
+      const rect = normalizeRect(startPoint.current, point);
+      startPoint.current = null;
+      setDraft(null);
+
+      // 面積が0の選択は無視する
+      if (rect.width === 0 || rect.height === 0) return;
+
+      setSelection(rect);
+      onSelect(rect);
+    },
+    [onSelect]
+  );
+
   const reset = useCallback(() => {
     startPoint.current = null;
     setDraft(null);
     setSelection(null);
   }, []);
 
-  return { draft, selection, onMouseDown, onMouseMove, onMouseUp, reset };
+  return { draft, selection, onMouseDown, onMouseMove, onMouseUp, onTouchStart, onTouchMove, onTouchEnd, reset };
 }
