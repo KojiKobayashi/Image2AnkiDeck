@@ -26,7 +26,10 @@ function App() {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      setQuestionImageSrc(URL.createObjectURL(file));
+      setQuestionImageSrc((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(file);
+      });
       setQuestionSelection(null);
     },
     []
@@ -36,7 +39,10 @@ function App() {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      setAnswerImageSrc(URL.createObjectURL(file));
+      setAnswerImageSrc((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(file);
+      });
       setAnswerSelection(null);
     },
     []

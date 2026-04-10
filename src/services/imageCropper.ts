@@ -10,27 +10,22 @@ import type { Rect } from "../types";
  */
 export function cropImage(imageSrc: string, rect: Rect): Promise<string> {
   return new Promise((resolve, reject) => {
+    const x = Math.round(rect.x);
+    const y = Math.round(rect.y);
+    const w = Math.round(rect.width);
+    const h = Math.round(rect.height);
+
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = Math.round(rect.width);
-      canvas.height = Math.round(rect.height);
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         reject(new Error("Canvas context not available"));
         return;
       }
-      ctx.drawImage(
-        img,
-        rect.x,
-        rect.y,
-        rect.width,
-        rect.height,
-        0,
-        0,
-        rect.width,
-        rect.height
-      );
+      ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
       resolve(canvas.toDataURL("image/png"));
     };
     img.onerror = () => reject(new Error("Failed to load image"));
