@@ -51,9 +51,10 @@ function App() {
   /** 切り出し画像をダウンロード */
   const handleDownload = useCallback(() => {
     if (!croppedSrc) return;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
     const a = document.createElement("a");
     a.href = croppedSrc;
-    a.download = "cropped.png";
+    a.download = `cropped_${timestamp}.png`;
     a.click();
   }, [croppedSrc]);
 
