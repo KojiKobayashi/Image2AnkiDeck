@@ -67,14 +67,15 @@ function sanitizeFileBaseName(name: string): string {
   const sanitized = withoutControlChars
     .replace(/[<>:"/\\|?*]/g, "_")
     .trim()
-    .replace(/\.+$/, "")
+    .replace(/[. ]+$/, "")
     .slice(0, MAX_DOWNLOAD_NAME_LENGTH);
 
   if (!sanitized) {
     return DEFAULT_DECK_NAME;
   }
 
-  return WINDOWS_RESERVED_NAMES.has(sanitized.toUpperCase())
+  const reservedNameCandidate = sanitized.split(".")[0]?.toUpperCase() ?? sanitized.toUpperCase();
+  return WINDOWS_RESERVED_NAMES.has(reservedNameCandidate)
     ? `${sanitized}_`
     : sanitized;
 }
