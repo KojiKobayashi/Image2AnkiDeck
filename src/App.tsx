@@ -84,7 +84,7 @@ function App() {
       a.href = downloadUrl;
       a.download = `${mergedName}_appended.zip`;
       a.click();
-      URL.revokeObjectURL(downloadUrl);
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
       setAppendStatus("既存デッキへ追記した ZIP を出力しました。");
     } catch (error) {
       console.error(error);
