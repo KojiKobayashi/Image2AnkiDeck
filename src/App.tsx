@@ -65,7 +65,10 @@ function App() {
       return;
     }
 
-    if (questionPng.type !== "image/png" || answerPng.type !== "image/png") {
+    const isPng = (file: File): boolean =>
+      file.type === "image/png" || /\.png$/i.test(file.name);
+
+    if (!isPng(questionPng) || !isPng(answerPng)) {
       setAppendStatus("問題・解答画像は PNG のみ対応です。");
       return;
     }
@@ -75,7 +78,7 @@ function App() {
         { questionImage: questionPng, answerImage: answerPng },
       ]);
 
-      const mergedName = deckZipFile.name.replace(/\.zip$/i, "") || deckZipFile.name || "deck";
+      const mergedName = deckZipFile.name.replace(/\.zip$/i, "").trim() || "deck";
       const downloadUrl = URL.createObjectURL(mergedZip);
       const a = document.createElement("a");
       a.href = downloadUrl;
@@ -83,7 +86,8 @@ function App() {
       a.click();
       URL.revokeObjectURL(downloadUrl);
       setAppendStatus("既存デッキへ追記した ZIP を出力しました。");
-    } catch {
+    } catch (error) {
+      console.error(error);
       setAppendStatus("追記処理に失敗しました。deck.zip の内容を確認してください。");
     }
   }, [answerPng, deckZipFile, questionPng]);

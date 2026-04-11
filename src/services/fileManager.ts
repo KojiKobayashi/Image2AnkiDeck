@@ -7,18 +7,28 @@ export type AppendCardInput = {
   answerImage: Blob;
 };
 
-function extractMaxIndexFromText(text: string): number {
-  const imageFilePattern = /(?:^|["'>])(q|a)_(\d+)\.png(?:["'<]|$)/g;
+function extractMaxIndexFromCsvText(text: string): number {
+  const imageFilePattern = /(?:q|a)_(\d+)\.png/g;
   let max = 0;
   let match = imageFilePattern.exec(text);
   while (match) {
-    const parsed = Number.parseInt(match[2], 10);
+    const parsed = Number.parseInt(match[1], 10);
     if (!Number.isNaN(parsed)) {
       max = Math.max(max, parsed);
     }
     match = imageFilePattern.exec(text);
   }
   return max;
+}
+
+function extractIndexFromFilename(filename: string): number {
+  const match = /^(?:q|a)_(\d+)\.png$/i.exec(filename);
+  if (!match) {
+    return 0;
+  }
+
+  const parsed = Number.parseInt(match[1], 10);
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 function formatCardNumber(num: number): string {
@@ -55,10 +65,10 @@ export async function appendCardsToExistingDeck(
   const existingCsv = await zip.file("deck.csv")?.async("text");
   const csvLines = normalizeCsv(existingCsv ?? "");
 
-  let maxIndex = extractMaxIndexFromText(csvLines.join("\n"));
+  let maxIndex = extractMaxIndexFromCsvText(csvLines.join("\n"));
 
   Object.keys(zip.files).forEach((filename) => {
-    maxIndex = Math.max(maxIndex, extractMaxIndexFromText(filename));
+    maxIndex = Math.max(maxIndex, extractIndexFromFilename(filename));
   });
 
   for (const card of newCards) {
