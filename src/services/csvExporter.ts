@@ -15,7 +15,9 @@ export type CsvExportOptions = {
 };
 
 function escapeCsvField(value: string): string {
-  return `"${value.replaceAll('"', '""')}"`;
+  const escaped = value.replaceAll('"', '""');
+  const requiresQuotes = /[",\r\n]/.test(escaped);
+  return requiresQuotes ? `"${escaped}"` : escaped;
 }
 
 function toImageTag(fileName: string): string {
@@ -37,15 +39,26 @@ export function createDeckCsv(cards: Card[], options: CsvExportOptions = {}): st
   const padding = options.padding ?? DEFAULT_PADDING;
 
   if (!Number.isInteger(startIndex) || startIndex < 1) {
-    throw new Error("startIndex must be an integer greater than or equal to 1");
+    throw new Error(`startIndex (${startIndex}) は 1 以上の整数である必要があります`);
   }
   if (!Number.isInteger(padding) || padding < 1) {
-    throw new Error("padding must be an integer greater than or equal to 1");
+    throw new Error(`padding (${padding}) は 1 以上の整数である必要があります`);
   }
 
   const rows = cards.map((card, offset) => {
-    if (!card.questionImage || !card.answerImage) {
-      throw new Error(`Card ${card.id} does not have questionImage/answerImage`);
+    const hasQuestionImage =
+      typeof card.questionImage === "string" && card.questionImage.trim().length > 0;
+    const hasAnswerImage =
+      typeof card.answerImage === "string" && card.answerImage.trim().length > 0;
+
+    if (!hasQuestionImage || !hasAnswerImage) {
+      const missing = [
+        !hasQuestionImage ? "問題画像" : null,
+        !hasAnswerImage ? "解答画像" : null,
+      ]
+        .filter((value): value is string => value !== null)
+        .join("・");
+      throw new Error(`カード（配列内位置 ${offset} / id: ${card.id}）の${missing}が不足しています`);
     }
 
     const sequence = startIndex + offset;
@@ -54,5 +67,5 @@ export function createDeckCsv(cards: Card[], options: CsvExportOptions = {}): st
     return `${escapeCsvField(front)},${escapeCsvField(back)}`;
   });
 
-  return ["Front,Back", ...rows].join("\n");
+  return `${["Front,Back", ...rows].join("\n")}\n`;
 }
