@@ -9,6 +9,7 @@ import { createDeckCsv } from "./csvExporter";
 
 const DEFAULT_PADDING = 3;
 const URL_REVOCATION_DELAY_MS = 300;
+const MAX_DOWNLOAD_NAME_LENGTH = 100;
 
 export type ZipExportOptions = {
   /** 連番の開始番号（既定: 1） */
@@ -27,6 +28,20 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
     throw new Error("画像データの変換に失敗しました");
   }
   return response.blob();
+}
+
+function sanitizeFileBaseName(name: string): string {
+  const withoutControlChars = Array.from(name)
+    .map((char) => (char.charCodeAt(0) < 32 ? "_" : char))
+    .join("");
+
+  const sanitized = withoutControlChars
+    .replace(/[<>:"/\\|?*]/g, "_")
+    .trim()
+    .replace(/\.+$/, "")
+    .slice(0, MAX_DOWNLOAD_NAME_LENGTH);
+
+  return sanitized || "deck";
 }
 
 export async function createDeckZip(cards: Card[], options: ZipExportOptions = {}): Promise<Blob> {
@@ -58,7 +73,7 @@ export async function downloadDeckZip(cards: Card[], deckName: string): Promise<
   const url = URL.createObjectURL(zipBlob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `${deckName || "deck"}.zip`;
+  anchor.download = `${sanitizeFileBaseName(deckName)}.zip`;
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), URL_REVOCATION_DELAY_MS);
 }
