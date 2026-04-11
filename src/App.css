@@ -13,7 +13,7 @@ body {
 }
 
 .app-container {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 1rem;
   display: flex;
@@ -26,22 +26,122 @@ h1 {
   font-weight: 700;
 }
 
+/* ---- デッキ名フィールド ---- */
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.field-label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.field-input {
+  flex: 1;
+  max-width: 320px;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.session-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ---- ステップインジケーター ---- */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.step-badge {
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #e0e0e0;
+  color: #666;
+}
+
+.step-badge--active {
+  background: #0078ff;
+  color: #fff;
+}
+
+.step-badge--done {
+  background: #d4edda;
+  color: #28a745;
+}
+
+.step-arrow {
+  color: #aaa;
+  font-size: 1rem;
+}
+
+/* ---- 2カラムレイアウト ---- */
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 700px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  transition: border-color 0.2s;
+}
+
+.column--active {
+  border-color: #0078ff;
+  box-shadow: 0 0 0 3px rgba(0, 120, 255, 0.1);
+}
+
+.column--inactive {
+  opacity: 0.6;
+}
+
+.column__title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* ---- アップロードエリア ---- */
 .upload-area {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
-.upload-area label {
+.upload-area__label {
   font-weight: 600;
+  font-size: 0.9rem;
 }
 
+/* ---- Canvasラッパー ---- */
 .canvas-wrapper {
   border: 1px solid #ccc;
   border-radius: 6px;
   overflow: auto;
   background: #fff;
-  max-height: 75vh;
+  max-height: 60vh;
   display: flex;
   align-items: flex-start;
 }
@@ -51,37 +151,198 @@ h1 {
   max-width: 100%;
 }
 
-.selection-info {
+/* ---- ボタン ---- */
+.btn {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn--primary {
+  background: #0078ff;
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: #005fcc;
+}
+
+.btn--primary:disabled {
+  background: #b0c4de;
+  cursor: not-allowed;
+}
+
+.btn--secondary {
+  background: #6c757d;
+  color: #fff;
+}
+
+.btn--secondary:hover {
+  background: #58626a;
+}
+
+.btn--file {
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn--file input[type="file"] {
+  display: none;
+}
+
+.error-text {
+  color: #c0392b;
+  font-weight: 600;
+}
+
+/* ---- カードプレビューセクション ---- */
+.card-section {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+}
+
+.preview-list__title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.preview-list__items {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.preview-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.preview-card__index {
+  font-weight: 700;
+  color: #555;
+  min-width: 2rem;
+}
+
+.preview-card__images {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  overflow: hidden;
+}
+
+.preview-card__image-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.preview-card__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.preview-card__img {
+  max-height: 80px;
+  max-width: 180px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  object-fit: contain;
+  background: #fff;
+}
+
+.preview-card__arrow {
+  font-size: 1.4rem;
+  color: #aaa;
+}
+
+.preview-card__remove {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid #e0a0a0;
+  border-radius: 4px;
+  background: #fff0f0;
+  color: #c0392b;
+  font-size: 0.82rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.preview-card__remove:hover {
+  background: #fdd;
+}
+
+/* ---- ヒントテキスト ---- */
+.hint {
+  color: #888;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.crop-button,
+.download-button {
+  margin-top: 0.75rem;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.crop-button {
+  background: #0078ff;
+  color: #fff;
+}
+
+.crop-button:hover {
+  background: #0060cc;
+}
+
+.download-button {
+  background: #28a745;
+  color: #fff;
+}
+
+.download-button:hover {
+  background: #1e8036;
+}
+
+.crop-error {
+  color: #c0392b;
+  font-weight: 600;
+}
+
+.cropped-preview {
   background: #fff;
   border: 1px solid #ccc;
   border-radius: 6px;
   padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.selection-info h2 {
+.cropped-preview h2 {
   font-size: 1rem;
-  margin-bottom: 0.75rem;
 }
 
-.selection-info table {
-  border-collapse: collapse;
-  min-width: 200px;
-}
-
-.selection-info th,
-.selection-info td {
-  padding: 0.3rem 0.8rem;
+.cropped-image {
+  max-width: 100%;
   border: 1px solid #ddd;
-  text-align: left;
-}
-
-.selection-info th {
-  background: #f0f0f0;
-  font-weight: 600;
-  width: 80px;
-}
-
-.hint {
-  color: #888;
-  font-style: italic;
+  border-radius: 4px;
 }
