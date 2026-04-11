@@ -11,6 +11,30 @@ const DEFAULT_PADDING = 3;
 const URL_REVOCATION_DELAY_MS = 300;
 const MAX_DOWNLOAD_NAME_LENGTH = 100;
 const DEFAULT_DECK_NAME = "deck";
+const WINDOWS_RESERVED_NAMES = new Set([
+  "CON",
+  "PRN",
+  "AUX",
+  "NUL",
+  "COM1",
+  "COM2",
+  "COM3",
+  "COM4",
+  "COM5",
+  "COM6",
+  "COM7",
+  "COM8",
+  "COM9",
+  "LPT1",
+  "LPT2",
+  "LPT3",
+  "LPT4",
+  "LPT5",
+  "LPT6",
+  "LPT7",
+  "LPT8",
+  "LPT9",
+]);
 
 export type ZipExportOptions = {
   /** 連番の開始番号（既定: 1） */
@@ -32,6 +56,7 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
 }
 
 function sanitizeFileBaseName(name: string): string {
+  // C0 (0-31), DEL (127), C1 (128-159) control characters
   const withoutControlChars = Array.from(name)
     .map((char) => {
       const code = char.charCodeAt(0);
@@ -45,7 +70,13 @@ function sanitizeFileBaseName(name: string): string {
     .replace(/\.+$/, "")
     .slice(0, MAX_DOWNLOAD_NAME_LENGTH);
 
-  return sanitized || DEFAULT_DECK_NAME;
+  if (!sanitized) {
+    return DEFAULT_DECK_NAME;
+  }
+
+  return WINDOWS_RESERVED_NAMES.has(sanitized.toUpperCase())
+    ? `${sanitized}_`
+    : sanitized;
 }
 
 export async function createDeckZip(cards: Card[], options: ZipExportOptions = {}): Promise<Blob> {
