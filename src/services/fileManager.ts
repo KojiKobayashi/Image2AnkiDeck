@@ -5,6 +5,7 @@ const CSV_HEADER = "Front,Back";
 const DEFAULT_DECK_NAME = "deck";
 const ZIP_CARD_ID_PREFIX = "zip-";
 const ZIP_CARD_ID_PADDING = 6;
+const DEFAULT_CARD_NUMBER_PADDING = 4;
 
 export type AppendCardInput = {
   questionImage: Blob;
@@ -30,22 +31,33 @@ function extractMaxIndexFromCsvText(text: string): number {
   return max;
 }
 
-function extractIndexFromFilename(filename: string): number {
+function extractPaddingFromCsvText(text: string): number {
+  const imageFilePattern = /(?:q|a)_(\d+)\.png/g;
+  let maxPadding = 0;
+  let match = imageFilePattern.exec(text);
+  while (match) {
+    maxPadding = Math.max(maxPadding, match[1].length);
+    match = imageFilePattern.exec(text);
+  }
+  return maxPadding;
+}
+
+function extractNumberFromFilename(filename: string): { index: number; padding: number } {
   const match = /^(?:q|a)_(\d+)\.png$/i.exec(filename);
   if (!match) {
-    return 0;
+    return { index: 0, padding: 0 };
   }
 
   const parsed = Number.parseInt(match[1], 10);
-  return Number.isNaN(parsed) ? 0 : parsed;
+  return Number.isNaN(parsed) ? { index: 0, padding: 0 } : { index: parsed, padding: match[1].length };
 }
 
-function formatCardNumber(num: number): string {
-  return String(num).padStart(3, "0");
+function formatCardNumber(num: number, padding: number): string {
+  return String(num).padStart(padding, "0");
 }
 
-function buildCsvRow(cardNumber: number): string {
-  const n = formatCardNumber(cardNumber);
+function buildCsvRow(cardNumber: number, padding: number): string {
+  const n = formatCardNumber(cardNumber, padding);
   return `<img src="q_${n}.png">,<img src="a_${n}.png">`;
 }
 
@@ -182,17 +194,22 @@ export async function appendCardsToExistingDeck(
   const csvLines = normalizeCsv(existingCsv ?? "");
 
   let maxIndex = extractMaxIndexFromCsvText(csvLines.join("\n"));
+  let detectedPadding = extractPaddingFromCsvText(csvLines.join("\n"));
 
   Object.keys(zip.files).forEach((filename) => {
-    maxIndex = Math.max(maxIndex, extractIndexFromFilename(filename));
+    const { index, padding } = extractNumberFromFilename(filename);
+    maxIndex = Math.max(maxIndex, index);
+    detectedPadding = Math.max(detectedPadding, padding);
   });
+
+  const cardNumberPadding = detectedPadding > 0 ? detectedPadding : DEFAULT_CARD_NUMBER_PADDING;
 
   for (const card of newCards) {
     maxIndex += 1;
-    const n = formatCardNumber(maxIndex);
+    const n = formatCardNumber(maxIndex, cardNumberPadding);
     zip.file(`q_${n}.png`, await card.questionImage.arrayBuffer());
     zip.file(`a_${n}.png`, await card.answerImage.arrayBuffer());
-    csvLines.push(buildCsvRow(maxIndex));
+    csvLines.push(buildCsvRow(maxIndex, cardNumberPadding));
   }
 
   zip.file("deck.csv", `${csvLines.join("\n")}\n`);
