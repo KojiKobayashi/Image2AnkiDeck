@@ -53,8 +53,16 @@ export function CanvasSelector({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
 
-  const { draft, selection: internalSelection, onMouseDown, onMouseMove, onMouseUp } =
-    useSelection(onSelect);
+  const {
+    draft,
+    selection: internalSelection,
+    onMouseDown,
+    onMouseMove,
+    onMouseUp,
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd,
+  } = useSelection(onSelect);
 
   // 外部から制御する場合は外部の値、なければ内部状態を使う
   const activeSelection = externalSelection !== undefined ? externalSelection : internalSelection;
@@ -122,7 +130,10 @@ export function CanvasSelector({
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
-      style={{ cursor: "crosshair", maxWidth: "100%", display: "block" }}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{ cursor: "crosshair", maxWidth: "100%", display: "block", touchAction: "none" }}
     />
   );
 }
