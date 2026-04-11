@@ -52,8 +52,7 @@ function isValidCardNumberPadding(padding: number): boolean {
 }
 
 function formatCardNumber(num: number, padding: number): string {
-  const safePadding = isValidCardNumberPadding(padding) ? padding : DEFAULT_CARD_NUMBER_PADDING;
-  return String(num).padStart(safePadding, "0");
+  return String(num).padStart(padding, "0");
 }
 
 function buildCsvRow(cardNumber: number, padding: number): string {
@@ -199,12 +198,16 @@ export async function appendCardsToExistingDeck(
   const zip = await JSZip.loadAsync(await deckZipFile.arrayBuffer());
   const existingCsv = await zip.file("deck.csv")?.async("text");
   const csvLines = normalizeCsv(existingCsv ?? "");
+  const csvText = csvLines.join("\n");
 
-  let maxIndex = extractMaxIndexFromCsvText(csvLines.join("\n"));
-  let detectedPadding = extractPaddingFromCsvText(csvLines.join("\n"));
+  let maxIndex = extractMaxIndexFromCsvText(csvText);
+  let detectedPadding = extractPaddingFromCsvText(csvText);
 
   Object.keys(zip.files).forEach((filename) => {
     const { index, padding } = parseCardImageFilename(filename);
+    if (index <= 0) {
+      return;
+    }
     maxIndex = Math.max(maxIndex, index);
     detectedPadding = Math.max(detectedPadding, padding);
   });
