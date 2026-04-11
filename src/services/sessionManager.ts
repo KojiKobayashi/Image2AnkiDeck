@@ -64,7 +64,9 @@ export function downloadSession(session: Session, fileName = "session.json"): vo
   anchor.href = url;
   anchor.download = fileName;
   anchor.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 0);
 }
 
 export async function loadSession(file: File): Promise<Session> {
