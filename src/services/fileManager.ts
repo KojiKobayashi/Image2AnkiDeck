@@ -18,31 +18,25 @@ type ImageSize = {
 };
 
 function extractMaxIndexFromCsvText(text: string): number {
-  const imageFilePattern = /(?:q|a)_(\d+)\.png/g;
   let max = 0;
-  let match = imageFilePattern.exec(text);
-  while (match) {
+  for (const match of text.matchAll(/(?:q|a)_(\d+)\.png/g)) {
     const parsed = Number.parseInt(match[1], 10);
     if (!Number.isNaN(parsed)) {
       max = Math.max(max, parsed);
     }
-    match = imageFilePattern.exec(text);
   }
   return max;
 }
 
 function extractPaddingFromCsvText(text: string): number {
-  const imageFilePattern = /(?:q|a)_(\d+)\.png/g;
   let maxPadding = 0;
-  let match = imageFilePattern.exec(text);
-  while (match) {
+  for (const match of text.matchAll(/(?:q|a)_(\d+)\.png/g)) {
     maxPadding = Math.max(maxPadding, match[1].length);
-    match = imageFilePattern.exec(text);
   }
   return maxPadding;
 }
 
-function extractNumberFromFilename(filename: string): { index: number; padding: number } {
+function extractIndexAndPaddingFromFilename(filename: string): { index: number; padding: number } {
   const match = /^(?:q|a)_(\d+)\.png$/i.exec(filename);
   if (!match) {
     return { index: 0, padding: 0 };
@@ -197,7 +191,7 @@ export async function appendCardsToExistingDeck(
   let detectedPadding = extractPaddingFromCsvText(csvLines.join("\n"));
 
   Object.keys(zip.files).forEach((filename) => {
-    const { index, padding } = extractNumberFromFilename(filename);
+    const { index, padding } = extractIndexAndPaddingFromFilename(filename);
     maxIndex = Math.max(maxIndex, index);
     detectedPadding = Math.max(detectedPadding, padding);
   });
