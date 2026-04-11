@@ -74,7 +74,7 @@ function sanitizeFileBaseName(name: string): string {
     return DEFAULT_DECK_NAME;
   }
 
-  const reservedNameCandidate = sanitized.split(".")[0]?.toUpperCase() ?? sanitized.toUpperCase();
+  const reservedNameCandidate = sanitized.split(".")[0].toUpperCase();
   return WINDOWS_RESERVED_NAMES.has(reservedNameCandidate)
     ? `${sanitized}_`
     : sanitized;
