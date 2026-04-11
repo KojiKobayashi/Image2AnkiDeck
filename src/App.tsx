@@ -221,6 +221,9 @@ function App() {
               id="question-upload"
               type="file"
               accept="image/*"
+              onClick={(e) => {
+                e.currentTarget.value = "";
+              }}
               onChange={handleQuestionFileChange}
             />
           </div>
@@ -257,6 +260,9 @@ function App() {
               id="answer-upload"
               type="file"
               accept="image/*"
+              onClick={(e) => {
+                e.currentTarget.value = "";
+              }}
               onChange={handleAnswerFileChange}
             />
           </div>
