@@ -13,6 +13,8 @@ import { downloadSession, loadSession } from "./services/sessionManager";
 import type { Rect, Session } from "./types";
 import "./App.css";
 
+const URL_REVOCATION_DELAY_MS = 300;
+
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -118,10 +120,11 @@ function App() {
       anchor.href = url;
       anchor.download = `${deckName || "deck"}.csv`;
       anchor.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), URL_REVOCATION_DELAY_MS);
       setCsvError(null);
     } catch (error) {
-      const detail = error instanceof Error ? error.message : "不明なエラー";
+      const detail =
+        error instanceof Error ? error.message : "CSV生成中に不明なエラーが発生しました";
       setCsvError(`CSVの保存に失敗しました: ${detail}`);
     }
   }, [cards, deckName]);
