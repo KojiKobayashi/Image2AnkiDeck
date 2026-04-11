@@ -14,6 +14,10 @@ export function cropImage(imageSrc: string, rect: Rect): Promise<string> {
     const y = Math.round(rect.y);
     const w = Math.round(rect.width);
     const h = Math.round(rect.height);
+    if (w <= 0 || h <= 0) {
+      reject(new Error("切り出し範囲の幅と高さは1以上である必要があります"));
+      return;
+    }
 
     const img = new Image();
     img.onload = () => {
