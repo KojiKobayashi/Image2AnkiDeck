@@ -33,7 +33,10 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
 
 function sanitizeFileBaseName(name: string): string {
   const withoutControlChars = Array.from(name)
-    .map((char) => (char.charCodeAt(0) < 32 ? "_" : char))
+    .map((char) => {
+      const code = char.charCodeAt(0);
+      return code < 32 || code === 127 || (code >= 128 && code <= 159) ? "_" : char;
+    })
     .join("");
 
   const sanitized = withoutControlChars
