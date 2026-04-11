@@ -10,7 +10,7 @@ import { PreviewList } from "./components/PreviewList";
 import { useCardRegistration } from "./hooks/useCardRegistration";
 import { loadDeckZipAsSession } from "./services/fileManager";
 import { downloadSession, loadSession } from "./services/sessionManager";
-import { downloadDeckZip } from "./services/zipExporter";
+import { downloadDeckZip, sanitizeFileBaseName } from "./services/zipExporter";
 import type { Rect, Session } from "./types";
 import "./App.css";
 
@@ -97,7 +97,7 @@ function App() {
       deckName,
       cards: sessionCards,
     };
-    downloadSession(session, `${deckName || "deck"}-session.json`);
+    downloadSession(session, `${sanitizeFileBaseName(deckName)}-session.json`);
   }, [deckName, sessionCards]);
 
   const handleLoadSession = useCallback(

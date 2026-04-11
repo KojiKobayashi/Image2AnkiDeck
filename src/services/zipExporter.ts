@@ -55,7 +55,7 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
   return response.blob();
 }
 
-function sanitizeFileBaseName(name: string): string {
+export function sanitizeFileBaseName(name: string): string {
   // C0 (0-31), DEL (127), C1 (128-159) control characters
   const withoutControlChars = Array.from(name)
     .map((char) => {
