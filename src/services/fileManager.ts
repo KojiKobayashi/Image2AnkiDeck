@@ -1,7 +1,6 @@
 import JSZip from "jszip";
 
 const CSV_HEADER = "Front,Back";
-const IMAGE_FILE_PATTERN = /(?:^|["'>])(q|a)_(\d+)\.png(?:["'<]|$)/g;
 
 export type AppendCardInput = {
   questionImage: Blob;
@@ -9,16 +8,16 @@ export type AppendCardInput = {
 };
 
 function extractMaxIndexFromText(text: string): number {
+  const imageFilePattern = /(?:^|["'>])(q|a)_(\d+)\.png(?:["'<]|$)/g;
   let max = 0;
-  let match = IMAGE_FILE_PATTERN.exec(text);
+  let match = imageFilePattern.exec(text);
   while (match) {
     const parsed = Number.parseInt(match[2], 10);
     if (!Number.isNaN(parsed)) {
       max = Math.max(max, parsed);
     }
-    match = IMAGE_FILE_PATTERN.exec(text);
+    match = imageFilePattern.exec(text);
   }
-  IMAGE_FILE_PATTERN.lastIndex = 0;
   return max;
 }
 

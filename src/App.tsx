@@ -75,7 +75,7 @@ function App() {
         { questionImage: questionPng, answerImage: answerPng },
       ]);
 
-      const mergedName = deckZipFile.name.replace(/\.zip$/i, "") || "deck";
+      const mergedName = deckZipFile.name.replace(/\.zip$/i, "") || deckZipFile.name || "deck";
       const downloadUrl = URL.createObjectURL(mergedZip);
       const a = document.createElement("a");
       a.href = downloadUrl;
