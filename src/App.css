@@ -293,52 +293,9 @@ h1 {
   font-size: 0.9rem;
 }
 
-.crop-button,
-.download-button {
-  margin-top: 0.75rem;
-  padding: 0.5rem 1.25rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.crop-button {
-  background: #0078ff;
-  color: #fff;
-}
-
-.crop-button:hover {
-  background: #0060cc;
-}
-
-.download-button {
-  background: #28a745;
-  color: #fff;
-}
-
-.download-button:hover {
-  background: #1e8036;
-}
-
 .crop-error {
   color: #c0392b;
   font-weight: 600;
-}
-
-.cropped-preview {
-  background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  padding: 1rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.cropped-preview h2 {
-  font-size: 1rem;
 }
 
 .cropped-image {
@@ -346,30 +303,6 @@ h1 {
   border: 1px solid #ddd;
   border-radius: 4px;
 }
-
-.append-area {
-  background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  padding: 1rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.append-area h2 {
-  font-size: 1rem;
-}
-
-.append-area label {
-  font-weight: 600;
-}
-
-.append-area button {
-  width: fit-content;
-  padding: 0.4rem 0.8rem;
-}
-
 .append-status {
   color: #333;
   font-size: 0.92rem;
