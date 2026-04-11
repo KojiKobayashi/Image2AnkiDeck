@@ -92,7 +92,12 @@ function toDeckName(fileName: string): string {
 }
 
 export async function loadDeckZipAsSession(deckZipFile: File): Promise<Session> {
-  const zip = await JSZip.loadAsync(await deckZipFile.arrayBuffer());
+  let zip: JSZip;
+  try {
+    zip = await JSZip.loadAsync(await deckZipFile.arrayBuffer());
+  } catch {
+    throw new Error("ZIPの読み込みに失敗しました。ファイル形式を確認してください");
+  }
   const questionFiles = new Map<number, string>();
   const answerFiles = new Map<number, string>();
 

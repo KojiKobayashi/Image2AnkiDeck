@@ -129,9 +129,8 @@ function App() {
         const session = await loadDeckZipAsSession(file);
         setDeckName(session.deckName);
         await restoreFromSession(session.cards);
-        const lastCard = session.cards[session.cards.length - 1];
-        setQuestionImageSrc(lastCard?.questionImageSrc ?? null);
-        setAnswerImageSrc(lastCard?.answerImageSrc ?? null);
+        setQuestionImageSrc(null);
+        setAnswerImageSrc(null);
         setQuestionSelection(null);
         setAnswerSelection(null);
         setSessionError(null);
