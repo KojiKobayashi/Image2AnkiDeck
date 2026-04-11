@@ -46,9 +46,17 @@ function App() {
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      const dataUrl = await readFileAsDataUrl(file);
-      setQuestionImageSrc(dataUrl);
-      setQuestionSelection(null);
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        setQuestionImageSrc(dataUrl);
+        setQuestionSelection(null);
+        setSessionError(null);
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : "不明なエラー";
+        setSessionError(`問題画像の読み込みに失敗しました: ${detail}`);
+      } finally {
+        e.target.value = "";
+      }
     },
     []
   );
@@ -57,9 +65,17 @@ function App() {
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      const dataUrl = await readFileAsDataUrl(file);
-      setAnswerImageSrc(dataUrl);
-      setAnswerSelection(null);
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        setAnswerImageSrc(dataUrl);
+        setAnswerSelection(null);
+        setSessionError(null);
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : "不明なエラー";
+        setSessionError(`解答画像の読み込みに失敗しました: ${detail}`);
+      } finally {
+        e.target.value = "";
+      }
     },
     []
   );
