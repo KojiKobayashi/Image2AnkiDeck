@@ -8,6 +8,7 @@ import { useCallback, useState } from "react";
 import { CanvasSelector } from "./components/CanvasSelector";
 import { PreviewList } from "./components/PreviewList";
 import { useCardRegistration } from "./hooks/useCardRegistration";
+import { createDeckCsv } from "./services/csvExporter";
 import { downloadSession, loadSession } from "./services/sessionManager";
 import type { Rect, Session } from "./types";
 import "./App.css";
@@ -34,6 +35,7 @@ function App() {
   const [questionSelection, setQuestionSelection] = useState<Rect | null>(null);
   const [answerSelection, setAnswerSelection] = useState<Rect | null>(null);
   const [sessionError, setSessionError] = useState<string | null>(null);
+  const [csvError, setCsvError] = useState<string | null>(null);
 
   const { step, cards, sessionCards, registerQuestion, registerAnswer, restoreFromSession, removeCard } =
     useCardRegistration();
@@ -107,6 +109,23 @@ function App() {
     [restoreFromSession]
   );
 
+  const handleSaveCsv = useCallback(() => {
+    try {
+      const csv = createDeckCsv(cards);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${deckName || "deck"}.csv`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setCsvError(null);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "不明なエラー";
+      setCsvError(`CSVの保存に失敗しました: ${detail}`);
+    }
+  }, [cards, deckName]);
+
   const isQuestionStep = step === "question";
 
   return (
@@ -136,8 +155,12 @@ function App() {
           セッションを読み込む
           <input type="file" accept=".json,application/json" onChange={handleLoadSession} />
         </label>
+        <button className="btn btn--secondary" onClick={handleSaveCsv} disabled={cards.length === 0}>
+          CSVを保存
+        </button>
       </div>
       {sessionError && <p className="error-text">{sessionError}</p>}
+      {csvError && <p className="error-text">{csvError}</p>}
 
       {/* ステップインジケーター */}
       <div className="step-indicator">
