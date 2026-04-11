@@ -10,6 +10,7 @@ import { createDeckCsv } from "./csvExporter";
 const DEFAULT_PADDING = 3;
 const URL_REVOCATION_DELAY_MS = 300;
 const MAX_DOWNLOAD_NAME_LENGTH = 100;
+const DEFAULT_DECK_NAME = "deck";
 
 export type ZipExportOptions = {
   /** 連番の開始番号（既定: 1） */
@@ -41,7 +42,7 @@ function sanitizeFileBaseName(name: string): string {
     .replace(/\.+$/, "")
     .slice(0, MAX_DOWNLOAD_NAME_LENGTH);
 
-  return sanitized || "deck";
+  return sanitized || DEFAULT_DECK_NAME;
 }
 
 export async function createDeckZip(cards: Card[], options: ZipExportOptions = {}): Promise<Blob> {
