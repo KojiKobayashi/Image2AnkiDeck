@@ -346,3 +346,31 @@ h1 {
   border: 1px solid #ddd;
   border-radius: 4px;
 }
+
+.append-area {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.append-area h2 {
+  font-size: 1rem;
+}
+
+.append-area label {
+  font-weight: 600;
+}
+
+.append-area button {
+  width: fit-content;
+  padding: 0.4rem 0.8rem;
+}
+
+.append-status {
+  color: #333;
+  font-size: 0.92rem;
+}

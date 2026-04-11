@@ -8,6 +8,7 @@ import { useCallback, useState } from "react";
 import { CanvasSelector } from "./components/CanvasSelector";
 import { PreviewList } from "./components/PreviewList";
 import { useCardRegistration } from "./hooks/useCardRegistration";
+import { loadDeckZipAsSession } from "./services/fileManager";
 import { downloadSession, loadSession } from "./services/sessionManager";
 import { downloadDeckZip } from "./services/zipExporter";
 import type { Rect, Session } from "./types";
@@ -120,13 +121,35 @@ function App() {
     }
   }, [cards, deckName]);
 
+  const handleLoadDeckZip = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const session = await loadDeckZipAsSession(file);
+        setDeckName(session.deckName);
+        await restoreFromSession(session.cards);
+        setQuestionImageSrc(null);
+        setAnswerImageSrc(null);
+        setQuestionSelection(null);
+        setAnswerSelection(null);
+        setSessionError(null);
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : "不明なエラー";
+        setSessionError(`ZIPの読み込みに失敗しました: ${detail}`);
+      } finally {
+        e.target.value = "";
+      }
+    },
+    [restoreFromSession]
+  );
+
   const isQuestionStep = step === "question";
 
   return (
     <div className="app-container">
       <h1>Image2AnkiDeck</h1>
 
-      {/* デッキ名入力 */}
       <div className="field-row">
         <label htmlFor="deck-name" className="field-label">
           デッキ名：
@@ -149,6 +172,10 @@ function App() {
           セッションを読み込む
           <input type="file" accept=".json,application/json" onChange={handleLoadSession} />
         </label>
+        <label className="btn btn--secondary btn--file">
+          ZIPを読み込む
+          <input type="file" accept=".zip,application/zip" onChange={handleLoadDeckZip} />
+        </label>
         <button className="btn btn--secondary" onClick={handleSaveZip} disabled={cards.length === 0}>
           ZIPを保存
         </button>
@@ -156,7 +183,6 @@ function App() {
       {sessionError && <p className="error-text">{sessionError}</p>}
       {zipError && <p className="error-text">{zipError}</p>}
 
-      {/* ステップインジケーター */}
       <div className="step-indicator">
         <span className={`step-badge ${isQuestionStep ? "step-badge--active" : "step-badge--done"}`}>
           1. 問題を選択
@@ -169,9 +195,7 @@ function App() {
         <span className="step-badge">繰り返す</span>
       </div>
 
-      {/* 2カラム：問題画像 ／ 解答画像 */}
       <div className="columns">
-        {/* 問題側 */}
         <div className={`column ${isQuestionStep ? "column--active" : "column--inactive"}`}>
           <h2 className="column__title">問題画像</h2>
           <div className="upload-area">
@@ -208,7 +232,6 @@ function App() {
           )}
         </div>
 
-        {/* 解答側 */}
         <div className={`column ${!isQuestionStep ? "column--active" : "column--inactive"}`}>
           <h2 className="column__title">解答画像</h2>
           <div className="upload-area">
@@ -246,7 +269,6 @@ function App() {
         </div>
       </div>
 
-      {/* 登録済みカードプレビュー */}
       <section className="card-section">
         <PreviewList cards={cards} onRemove={removeCard} />
       </section>
