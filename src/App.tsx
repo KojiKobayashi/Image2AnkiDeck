@@ -8,7 +8,7 @@ import { useCallback, useState } from "react";
 import { CanvasSelector } from "./components/CanvasSelector";
 import { PreviewList } from "./components/PreviewList";
 import { useCardRegistration } from "./hooks/useCardRegistration";
-import { appendCardsToExistingDeck } from "./services/fileManager";
+import { loadDeckZipAsSession } from "./services/fileManager";
 import { downloadSession, loadSession } from "./services/sessionManager";
 import { downloadDeckZip } from "./services/zipExporter";
 import type { Rect, Session } from "./types";
@@ -37,10 +37,6 @@ function App() {
   const [answerSelection, setAnswerSelection] = useState<Rect | null>(null);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [zipError, setZipError] = useState<string | null>(null);
-  const [deckZipFile, setDeckZipFile] = useState<File | null>(null);
-  const [appendQuestionPng, setAppendQuestionPng] = useState<File | null>(null);
-  const [appendAnswerPng, setAppendAnswerPng] = useState<File | null>(null);
-  const [appendStatus, setAppendStatus] = useState<string>("");
 
   const { step, cards, sessionCards, registerQuestion, registerAnswer, restoreFromSession, removeCard } =
     useCardRegistration();
@@ -125,59 +121,29 @@ function App() {
     }
   }, [cards, deckName]);
 
-  const handleDeckZipChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setDeckZipFile(e.target.files?.[0] ?? null);
-      setAppendStatus("");
+  const handleLoadDeckZip = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const session = await loadDeckZipAsSession(file);
+        setDeckName(session.deckName);
+        await restoreFromSession(session.cards);
+        const lastCard = session.cards[session.cards.length - 1];
+        setQuestionImageSrc(lastCard?.questionImageSrc ?? null);
+        setAnswerImageSrc(lastCard?.answerImageSrc ?? null);
+        setQuestionSelection(null);
+        setAnswerSelection(null);
+        setSessionError(null);
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : "不明なエラー";
+        setSessionError(`ZIPの読み込みに失敗しました: ${detail}`);
+      } finally {
+        e.target.value = "";
+      }
     },
-    []
+    [restoreFromSession]
   );
-
-  const handleAppendQuestionPngChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setAppendQuestionPng(e.target.files?.[0] ?? null);
-      setAppendStatus("");
-    },
-    []
-  );
-
-  const handleAppendAnswerPngChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setAppendAnswerPng(e.target.files?.[0] ?? null);
-      setAppendStatus("");
-    },
-    []
-  );
-
-  const handleAppendToDeck = useCallback(async () => {
-    if (!deckZipFile || !appendQuestionPng || !appendAnswerPng) {
-      setAppendStatus("deck.zip / 問題PNG / 解答PNG をすべて指定してください。");
-      return;
-    }
-
-    const isPng = (file: File): boolean => file.type === "image/png" || /\.png$/i.test(file.name);
-    if (!isPng(appendQuestionPng) || !isPng(appendAnswerPng)) {
-      setAppendStatus("問題・解答画像は PNG のみ対応です。");
-      return;
-    }
-
-    try {
-      const mergedZip = await appendCardsToExistingDeck(deckZipFile, [
-        { questionImage: appendQuestionPng, answerImage: appendAnswerPng },
-      ]);
-      const mergedName = deckZipFile.name.replace(/\.zip$/i, "").trim() || "deck";
-      const downloadUrl = URL.createObjectURL(mergedZip);
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = `${mergedName}_appended.zip`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-      setAppendStatus("既存デッキへ追記した ZIP を出力しました。");
-    } catch (error) {
-      console.error(error);
-      setAppendStatus("追記処理に失敗しました。deck.zip の内容を確認してください。");
-    }
-  }, [appendAnswerPng, appendQuestionPng, deckZipFile]);
 
   const isQuestionStep = step === "question";
 
@@ -206,6 +172,10 @@ function App() {
         <label className="btn btn--secondary btn--file">
           セッションを読み込む
           <input type="file" accept=".json,application/json" onChange={handleLoadSession} />
+        </label>
+        <label className="btn btn--secondary btn--file">
+          ZIPを読み込む
+          <input type="file" accept=".zip,application/zip" onChange={handleLoadDeckZip} />
         </label>
         <button className="btn btn--secondary" onClick={handleSaveZip} disabled={cards.length === 0}>
           ZIPを保存
@@ -302,34 +272,6 @@ function App() {
 
       <section className="card-section">
         <PreviewList cards={cards} onRemove={removeCard} />
-      </section>
-
-      <section className="append-area">
-        <h2>既存デッキへの追記</h2>
-        <label htmlFor="deck-zip-upload">既存 deck.zip：</label>
-        <input id="deck-zip-upload" type="file" accept=".zip" onChange={handleDeckZipChange} />
-
-        <label htmlFor="append-question-png-upload">追記する問題画像（PNG）：</label>
-        <input
-          id="append-question-png-upload"
-          type="file"
-          accept=".png,image/png"
-          onChange={handleAppendQuestionPngChange}
-        />
-
-        <label htmlFor="append-answer-png-upload">追記する解答画像（PNG）：</label>
-        <input
-          id="append-answer-png-upload"
-          type="file"
-          accept=".png,image/png"
-          onChange={handleAppendAnswerPngChange}
-        />
-
-        <button type="button" className="btn btn--primary" onClick={handleAppendToDeck}>
-          1件追記してZIP出力
-        </button>
-
-        {appendStatus && <p className="append-status">{appendStatus}</p>}
       </section>
     </div>
   );
