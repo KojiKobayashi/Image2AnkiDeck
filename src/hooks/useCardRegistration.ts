@@ -91,25 +91,30 @@ export function useCardRegistration(): UseCardRegistrationReturn {
   const restoreFromSession = useCallback(async (loadedSessionCards: SessionCard[]) => {
     const restoredCards = await Promise.all(
       loadedSessionCards.map(async (sessionCard): Promise<Card> => {
-        const [questionImage, answerImage] = await Promise.all([
-          cropImage(sessionCard.questionImageSrc, {
-            x: sessionCard.questionRect.x,
-            y: sessionCard.questionRect.y,
-            width: sessionCard.questionRect.w,
-            height: sessionCard.questionRect.h,
-          }),
-          cropImage(sessionCard.answerImageSrc, {
-            x: sessionCard.answerRect.x,
-            y: sessionCard.answerRect.y,
-            width: sessionCard.answerRect.w,
-            height: sessionCard.answerRect.h,
-          }),
-        ]);
-        return {
-          id: sessionCard.id,
-          questionImage,
-          answerImage,
-        };
+        try {
+          const [questionImage, answerImage] = await Promise.all([
+            cropImage(sessionCard.questionImageSrc, {
+              x: sessionCard.questionRect.x,
+              y: sessionCard.questionRect.y,
+              width: sessionCard.questionRect.w,
+              height: sessionCard.questionRect.h,
+            }),
+            cropImage(sessionCard.answerImageSrc, {
+              x: sessionCard.answerRect.x,
+              y: sessionCard.answerRect.y,
+              width: sessionCard.answerRect.w,
+              height: sessionCard.answerRect.h,
+            }),
+          ]);
+          return {
+            id: sessionCard.id,
+            questionImage,
+            answerImage,
+          };
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : "不明なエラー";
+          throw new Error(`カード（id: ${sessionCard.id}）の復元に失敗しました: ${detail}`);
+        }
       })
     );
 

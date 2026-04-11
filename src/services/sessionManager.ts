@@ -69,7 +69,12 @@ export function downloadSession(session: Session, fileName = "session.json"): vo
 
 export async function loadSession(file: File): Promise<Session> {
   const text = await file.text();
-  const parsed: unknown = JSON.parse(text);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error("JSONの構文が不正です");
+  }
   assertValidSession(parsed);
   return parsed;
 }

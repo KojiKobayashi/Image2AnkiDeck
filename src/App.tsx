@@ -97,8 +97,9 @@ function App() {
         setQuestionSelection(null);
         setAnswerSelection(null);
         setSessionError(null);
-      } catch {
-        setSessionError("セッションの読み込みに失敗しました");
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : "不明なエラー";
+        setSessionError(`セッションの読み込みに失敗しました: ${detail}`);
       } finally {
         e.target.value = "";
       }
