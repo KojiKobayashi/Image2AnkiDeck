@@ -37,14 +37,20 @@ function extractPaddingFromCsvText(text: string): number {
   return maxPadding;
 }
 
-function parseCardImageFilename(filename: string): { index: number; padding: number } {
+function parseCardImageFilename(filename: string): {
+  matched: boolean;
+  index: number;
+  padding: number;
+} {
   const match = /^(?:q|a)_(\d+)\.png$/i.exec(filename);
   if (!match) {
-    return { index: 0, padding: 0 };
+    return { matched: false, index: 0, padding: 0 };
   }
 
   const parsed = Number.parseInt(match[1], 10);
-  return Number.isNaN(parsed) ? { index: 0, padding: 0 } : { index: parsed, padding: match[1].length };
+  return Number.isNaN(parsed)
+    ? { matched: false, index: 0, padding: 0 }
+    : { matched: true, index: parsed, padding: match[1].length };
 }
 
 function isValidCardNumberPadding(padding: number): boolean {
@@ -204,8 +210,8 @@ export async function appendCardsToExistingDeck(
   let detectedPadding = extractPaddingFromCsvText(csvText);
 
   Object.keys(zip.files).forEach((filename) => {
-    const { index, padding } = parseCardImageFilename(filename);
-    if (index <= 0) {
+    const { matched, index, padding } = parseCardImageFilename(filename);
+    if (!matched) {
       return;
     }
     maxIndex = Math.max(maxIndex, index);
