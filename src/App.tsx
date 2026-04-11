@@ -88,8 +88,13 @@ function App() {
   /** 解答領域を登録してカードを生成する */
   const handleRegisterAnswer = useCallback(async () => {
     if (!answerImageSrc || !answerSelection) return;
-    await registerAnswer(answerImageSrc, answerSelection);
-    setAnswerSelection(null);
+    try {
+      await registerAnswer(answerImageSrc, answerSelection);
+      setAnswerSelection(null);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "不明なエラー";
+      setSessionError(`解答の登録に失敗しました: ${detail}`);
+    }
   }, [answerImageSrc, answerSelection, registerAnswer]);
 
   const handleSaveSession = useCallback(() => {
