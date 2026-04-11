@@ -8,8 +8,24 @@ import { useCallback, useState } from "react";
 import { CanvasSelector } from "./components/CanvasSelector";
 import { PreviewList } from "./components/PreviewList";
 import { useCardRegistration } from "./hooks/useCardRegistration";
-import type { Rect } from "./types";
+import { downloadSession, loadSession } from "./services/sessionManager";
+import type { Rect, Session } from "./types";
 import "./App.css";
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("画像の読み込みに失敗しました"));
+    };
+    reader.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
+    reader.readAsDataURL(file);
+  });
+}
 
 function App() {
   const [deckName, setDeckName] = useState<string>("");
@@ -17,32 +33,29 @@ function App() {
   const [answerImageSrc, setAnswerImageSrc] = useState<string | null>(null);
   const [questionSelection, setQuestionSelection] = useState<Rect | null>(null);
   const [answerSelection, setAnswerSelection] = useState<Rect | null>(null);
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
-  const { step, cards, registerQuestion, registerAnswer, removeCard } =
+  const { step, cards, sessionCards, registerQuestion, registerAnswer, restoreFromSession, removeCard } =
     useCardRegistration();
 
-  /** ファイル選択時に Object URL へ変換して状態を更新 */
+  /** ファイル選択時に Data URL へ変換して状態を更新 */
   const handleQuestionFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      setQuestionImageSrc((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return URL.createObjectURL(file);
-      });
+      const dataUrl = await readFileAsDataUrl(file);
+      setQuestionImageSrc(dataUrl);
       setQuestionSelection(null);
     },
     []
   );
 
   const handleAnswerFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      setAnswerImageSrc((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return URL.createObjectURL(file);
-      });
+      const dataUrl = await readFileAsDataUrl(file);
+      setAnswerImageSrc(dataUrl);
       setAnswerSelection(null);
     },
     []
@@ -61,6 +74,37 @@ function App() {
     await registerAnswer(answerImageSrc, answerSelection);
     setAnswerSelection(null);
   }, [answerImageSrc, answerSelection, registerAnswer]);
+
+  const handleSaveSession = useCallback(() => {
+    const session: Session = {
+      deckName,
+      cards: sessionCards,
+    };
+    downloadSession(session, `${deckName || "deck"}-session.json`);
+  }, [deckName, sessionCards]);
+
+  const handleLoadSession = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const session = await loadSession(file);
+        setDeckName(session.deckName);
+        await restoreFromSession(session.cards);
+        const lastCard = session.cards[session.cards.length - 1];
+        setQuestionImageSrc(lastCard?.questionImageSrc ?? null);
+        setAnswerImageSrc(lastCard?.answerImageSrc ?? null);
+        setQuestionSelection(null);
+        setAnswerSelection(null);
+        setSessionError(null);
+      } catch {
+        setSessionError("セッションの読み込みに失敗しました");
+      } finally {
+        e.target.value = "";
+      }
+    },
+    [restoreFromSession]
+  );
 
   const isQuestionStep = step === "question";
 
@@ -82,6 +126,17 @@ function App() {
           onChange={(e) => setDeckName(e.target.value)}
         />
       </div>
+
+      <div className="session-actions">
+        <button className="btn btn--secondary" onClick={handleSaveSession}>
+          セッションを保存
+        </button>
+        <label className="btn btn--secondary btn--file">
+          セッションを読み込む
+          <input type="file" accept=".json,application/json" onChange={handleLoadSession} />
+        </label>
+      </div>
+      {sessionError && <p className="error-text">{sessionError}</p>}
 
       {/* ステップインジケーター */}
       <div className="step-indicator">

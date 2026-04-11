@@ -47,6 +47,12 @@ h1 {
   font-size: 0.95rem;
 }
 
+.session-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 /* ---- ステップインジケーター ---- */
 .step-indicator {
   display: flex;
@@ -168,6 +174,29 @@ h1 {
 .btn--primary:disabled {
   background: #b0c4de;
   cursor: not-allowed;
+}
+
+.btn--secondary {
+  background: #6c757d;
+  color: #fff;
+}
+
+.btn--secondary:hover {
+  background: #58626a;
+}
+
+.btn--file {
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn--file input[type="file"] {
+  display: none;
+}
+
+.error-text {
+  color: #c0392b;
+  font-weight: 600;
 }
 
 /* ---- カードプレビューセクション ---- */

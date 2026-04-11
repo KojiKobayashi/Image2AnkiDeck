@@ -10,7 +10,7 @@
  */
 
 import { useCallback, useState } from "react";
-import type { Card, Rect } from "../types";
+import type { Card, Rect, SessionCard } from "../types";
 import { cropImage } from "../services/imageCropper";
 import { generateId } from "../utils/idGenerator";
 
@@ -22,10 +22,14 @@ export type UseCardRegistrationReturn = {
   step: RegistrationStep;
   /** 登録済みカード一覧 */
   cards: Card[];
+  /** セッション保存用カード一覧 */
+  sessionCards: SessionCard[];
   /** 問題領域を登録してステップを解答選択へ進める */
   registerQuestion: (imageSrc: string, rect: Rect) => void;
   /** 解答領域を登録してカードを生成する */
   registerAnswer: (imageSrc: string, rect: Rect) => Promise<void>;
+  /** セッションからカード一覧を復元する */
+  restoreFromSession: (sessionCards: SessionCard[]) => Promise<void>;
   /** カードを削除する */
   removeCard: (id: string) => void;
 };
@@ -33,6 +37,7 @@ export type UseCardRegistrationReturn = {
 export function useCardRegistration(): UseCardRegistrationReturn {
   const [step, setStep] = useState<RegistrationStep>("question");
   const [cards, setCards] = useState<Card[]>([]);
+  const [sessionCards, setSessionCards] = useState<SessionCard[]>([]);
   const [pendingQuestion, setPendingQuestion] = useState<{
     imageSrc: string;
     rect: Rect;
@@ -57,17 +62,75 @@ export function useCardRegistration(): UseCardRegistrationReturn {
         questionImage,
         answerImage,
       };
+      const sessionCard: SessionCard = {
+        id: card.id,
+        questionRect: {
+          x: pendingQuestion.rect.x,
+          y: pendingQuestion.rect.y,
+          w: pendingQuestion.rect.width,
+          h: pendingQuestion.rect.height,
+        },
+        answerRect: {
+          x: rect.x,
+          y: rect.y,
+          w: rect.width,
+          h: rect.height,
+        },
+        questionImageSrc: pendingQuestion.imageSrc,
+        answerImageSrc: imageSrc,
+      };
 
       setCards((prev) => [...prev, card]);
+      setSessionCards((prev) => [...prev, sessionCard]);
       setPendingQuestion(null);
       setStep("question");
     },
     [pendingQuestion]
   );
 
-  const removeCard = useCallback((id: string) => {
-    setCards((prev) => prev.filter((c) => c.id !== id));
+  const restoreFromSession = useCallback(async (loadedSessionCards: SessionCard[]) => {
+    const restoredCards = await Promise.all(
+      loadedSessionCards.map(async (sessionCard): Promise<Card> => {
+        const [questionImage, answerImage] = await Promise.all([
+          cropImage(sessionCard.questionImageSrc, {
+            x: sessionCard.questionRect.x,
+            y: sessionCard.questionRect.y,
+            width: sessionCard.questionRect.w,
+            height: sessionCard.questionRect.h,
+          }),
+          cropImage(sessionCard.answerImageSrc, {
+            x: sessionCard.answerRect.x,
+            y: sessionCard.answerRect.y,
+            width: sessionCard.answerRect.w,
+            height: sessionCard.answerRect.h,
+          }),
+        ]);
+        return {
+          id: sessionCard.id,
+          questionImage,
+          answerImage,
+        };
+      })
+    );
+
+    setCards(restoredCards);
+    setSessionCards(loadedSessionCards);
+    setPendingQuestion(null);
+    setStep("question");
   }, []);
 
-  return { step, cards, registerQuestion, registerAnswer, removeCard };
+  const removeCard = useCallback((id: string) => {
+    setCards((prev) => prev.filter((c) => c.id !== id));
+    setSessionCards((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
+  return {
+    step,
+    cards,
+    sessionCards,
+    registerQuestion,
+    registerAnswer,
+    restoreFromSession,
+    removeCard,
+  };
 }
