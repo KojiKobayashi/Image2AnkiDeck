@@ -2,6 +2,9 @@ import JSZip from "jszip";
 import type { Session, SessionCard } from "../types";
 
 const CSV_HEADER = "Front,Back";
+const DEFAULT_DECK_NAME = "deck";
+const ZIP_CARD_ID_PREFIX = "zip-";
+const ZIP_CARD_ID_PADDING = 6;
 
 export type AppendCardInput = {
   questionImage: Blob;
@@ -88,7 +91,7 @@ function readImageSize(imageSrc: string): Promise<ImageSize> {
 }
 
 function toDeckName(fileName: string): string {
-  return fileName.replace(/\.zip$/i, "").trim() || "deck";
+  return fileName.replace(/\.zip$/i, "").trim() || DEFAULT_DECK_NAME;
 }
 
 export async function loadDeckZipAsSession(deckZipFile: File): Promise<Session> {
@@ -152,7 +155,7 @@ export async function loadDeckZipAsSession(deckZipFile: File): Promise<Session> 
     ]);
 
     cards.push({
-      id: `zip-${String(index).padStart(6, "0")}`,
+      id: `${ZIP_CARD_ID_PREFIX}${String(index).padStart(ZIP_CARD_ID_PADDING, "0")}`,
       questionRect: { x: 0, y: 0, w: questionSize.width, h: questionSize.height },
       answerRect: { x: 0, y: 0, w: answerSize.width, h: answerSize.height },
       questionImageSrc,
