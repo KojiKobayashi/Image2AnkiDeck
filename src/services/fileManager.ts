@@ -61,9 +61,15 @@ function formatCardNumber(num: number, padding: number): string {
   return String(num).padStart(padding, "0");
 }
 
+function escapeCsvField(value: string): string {
+  return `"${value.replace(/"/g, `""`)}"`;
+}
+
 function buildCsvRow(cardNumber: number, padding: number): string {
   const n = formatCardNumber(cardNumber, padding);
-  return `<img src="q_${n}.png">,<img src="a_${n}.png">`;
+  const front = escapeCsvField(`<img src="q_${n}.png">`);
+  const back = escapeCsvField(`<img src="a_${n}.png">`);
+  return `${front},${back}`;
 }
 
 function normalizeCsv(existingCsv: string): string[] {
