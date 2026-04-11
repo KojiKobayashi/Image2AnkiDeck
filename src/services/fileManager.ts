@@ -6,6 +6,7 @@ const DEFAULT_DECK_NAME = "deck";
 const ZIP_CARD_ID_PREFIX = "zip-";
 const ZIP_CARD_ID_PADDING = 6;
 const DEFAULT_CARD_NUMBER_PADDING = 4;
+const MAX_CARD_NUMBER_PADDING = 12;
 
 export type AppendCardInput = {
   questionImage: Blob;
@@ -47,7 +48,11 @@ function extractIndexAndPaddingFromFilename(filename: string): { index: number; 
 }
 
 function formatCardNumber(num: number, padding: number): string {
-  return String(num).padStart(padding, "0");
+  const safePadding =
+    Number.isInteger(padding) && padding >= 1 && padding <= MAX_CARD_NUMBER_PADDING
+      ? padding
+      : DEFAULT_CARD_NUMBER_PADDING;
+  return String(num).padStart(safePadding, "0");
 }
 
 function buildCsvRow(cardNumber: number, padding: number): string {
@@ -70,6 +75,17 @@ function normalizeCsv(existingCsv: string): string[] {
   }
 
   return lines;
+}
+
+function resolveCardNumberPadding(detectedPadding: number): number {
+  if (
+    Number.isInteger(detectedPadding) &&
+    detectedPadding >= 1 &&
+    detectedPadding <= MAX_CARD_NUMBER_PADDING
+  ) {
+    return detectedPadding;
+  }
+  return DEFAULT_CARD_NUMBER_PADDING;
 }
 
 function blobToDataUrl(blob: Blob): Promise<string> {
@@ -196,7 +212,7 @@ export async function appendCardsToExistingDeck(
     detectedPadding = Math.max(detectedPadding, padding);
   });
 
-  const cardNumberPadding = detectedPadding > 0 ? detectedPadding : DEFAULT_CARD_NUMBER_PADDING;
+  const cardNumberPadding = resolveCardNumberPadding(detectedPadding);
 
   for (const card of newCards) {
     maxIndex += 1;
