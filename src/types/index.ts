@@ -59,6 +59,12 @@ export type UseSelectionReturn = {
   onMouseMove: (e: React.MouseEvent<HTMLCanvasElement>) => void;
   /** mouseupイベントハンドラ */
   onMouseUp: (e: React.MouseEvent<HTMLCanvasElement>) => void;
+  /** touchstartイベントハンドラ（タブレット対応） */
+  onTouchStart: (e: React.TouchEvent<HTMLCanvasElement>) => void;
+  /** touchmoveイベントハンドラ（タブレット対応） */
+  onTouchMove: (e: React.TouchEvent<HTMLCanvasElement>) => void;
+  /** touchendイベントハンドラ（タブレット対応） */
+  onTouchEnd: (e: React.TouchEvent<HTMLCanvasElement>) => void;
   /** 選択をリセットする */
   reset: () => void;
 };
