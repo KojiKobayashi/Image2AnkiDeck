@@ -22,13 +22,13 @@ export function cropImage(imageSrc: string, rect: Rect): Promise<string> {
       canvas.height = h;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
-        reject(new Error("Canvas context not available"));
+        reject(new Error("キャンバスのコンテキストを取得できませんでした"));
         return;
       }
       ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
       resolve(canvas.toDataURL("image/png"));
     };
-    img.onerror = () => reject(new Error("Failed to load image"));
+    img.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
     img.src = imageSrc;
   });
 }
