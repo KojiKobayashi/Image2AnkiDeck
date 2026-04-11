@@ -115,12 +115,14 @@ h1 {
 }
 
 .column--inactive {
-  opacity: 0.6;
+  border-color: #d0d0d0;
+  background: #f7f7f7;
 }
 
 .column__title {
   font-size: 1rem;
   font-weight: 700;
+  color: #1f1f1f;
 }
 
 /* ---- アップロードエリア ---- */
@@ -211,6 +213,7 @@ h1 {
   font-size: 1rem;
   font-weight: 700;
   margin-bottom: 1rem;
+  color: #1f1f1f;
 }
 
 .preview-list__items {
