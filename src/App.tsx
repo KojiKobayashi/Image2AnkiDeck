@@ -10,6 +10,7 @@ import { PreviewList } from "./components/PreviewList";
 import { useCardRegistration } from "./hooks/useCardRegistration";
 import { createDeckCsv } from "./services/csvExporter";
 import { downloadSession, loadSession } from "./services/sessionManager";
+import { downloadDeckZip } from "./services/zipExporter";
 import type { Rect, Session } from "./types";
 import "./App.css";
 
@@ -38,6 +39,7 @@ function App() {
   const [answerSelection, setAnswerSelection] = useState<Rect | null>(null);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [csvError, setCsvError] = useState<string | null>(null);
+  const [zipError, setZipError] = useState<string | null>(null);
 
   const { step, cards, sessionCards, registerQuestion, registerAnswer, restoreFromSession, removeCard } =
     useCardRegistration();
@@ -129,6 +131,17 @@ function App() {
     }
   }, [cards, deckName]);
 
+  const handleSaveZip = useCallback(async () => {
+    try {
+      await downloadDeckZip(cards, deckName);
+      setZipError(null);
+    } catch (error) {
+      const detail =
+        error instanceof Error ? error.message : "ZIP生成中に不明なエラーが発生しました";
+      setZipError(`ZIPの保存に失敗しました: ${detail}`);
+    }
+  }, [cards, deckName]);
+
   const isQuestionStep = step === "question";
 
   return (
@@ -161,9 +174,13 @@ function App() {
         <button className="btn btn--secondary" onClick={handleSaveCsv} disabled={cards.length === 0}>
           CSVを保存
         </button>
+        <button className="btn btn--secondary" onClick={handleSaveZip} disabled={cards.length === 0}>
+          ZIPを保存
+        </button>
       </div>
       {sessionError && <p className="error-text">{sessionError}</p>}
       {csvError && <p className="error-text">{csvError}</p>}
+      {zipError && <p className="error-text">{zipError}</p>}
 
       {/* ステップインジケーター */}
       <div className="step-indicator">
