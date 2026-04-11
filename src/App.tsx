@@ -53,8 +53,6 @@ function App() {
       } catch (error) {
         const detail = error instanceof Error ? error.message : "不明なエラー";
         setSessionError(`問題画像の読み込みに失敗しました: ${detail}`);
-      } finally {
-        e.target.value = "";
       }
     },
     []
@@ -71,8 +69,6 @@ function App() {
       } catch (error) {
         const detail = error instanceof Error ? error.message : "不明なエラー";
         setSessionError(`解答画像の読み込みに失敗しました: ${detail}`);
-      } finally {
-        e.target.value = "";
       }
     },
     []
@@ -225,6 +221,9 @@ function App() {
               id="question-upload"
               type="file"
               accept="image/*"
+              onClick={(e) => {
+                e.currentTarget.value = "";
+              }}
               onChange={handleQuestionFileChange}
             />
           </div>
@@ -261,6 +260,9 @@ function App() {
               id="answer-upload"
               type="file"
               accept="image/*"
+              onClick={(e) => {
+                e.currentTarget.value = "";
+              }}
               onChange={handleAnswerFileChange}
             />
           </div>
