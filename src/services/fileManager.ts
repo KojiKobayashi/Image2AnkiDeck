@@ -104,25 +104,25 @@ export async function loadDeckZipAsSession(deckZipFile: File): Promise<Session> 
   const questionFiles = new Map<number, string>();
   const answerFiles = new Map<number, string>();
 
-  Object.keys(zip.files).forEach((name) => {
+  for (const name of Object.keys(zip.files)) {
     const match = /^(q|a)_(\d+)\.png$/i.exec(name);
     if (!match) {
-      return;
+      continue;
     }
 
     const prefix = match[1].toLowerCase();
     const index = Number.parseInt(match[2], 10);
     if (Number.isNaN(index)) {
-      return;
+      continue;
     }
 
     if (prefix === "q") {
       questionFiles.set(index, name);
-      return;
+      continue;
     }
 
     answerFiles.set(index, name);
-  });
+  }
 
   const sortedIndices = [...questionFiles.keys()]
     .filter((index) => answerFiles.has(index))
@@ -164,7 +164,7 @@ export async function loadDeckZipAsSession(deckZipFile: File): Promise<Session> 
   }
 
   if (cards.length === 0) {
-    throw new Error("deck.zip からカード画像を読み込めませんでした");
+    throw new Error(`${deckZipFile.name} からカード画像を読み込めませんでした`);
   }
 
   return {
