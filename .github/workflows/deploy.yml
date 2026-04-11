@@ -4,12 +4,14 @@ on:
   push:
     branches:
       - main
+      - develop
   pull_request:
     types:
       - opened
       - synchronize
       - reopened
       - closed
+  delete:
 
 permissions:
   contents: write
@@ -41,6 +43,33 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
+
+  # ①-2 develop ブランチへのプッシュ時（開発ページデプロイ）
+  deploy-develop:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_BASE_PATH: /Image2AnkiDeck/develop/
+
+      - name: Deploy develop page to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          destination_dir: develop
 
   # ② PR のオープン・同期時（プレビューデプロイ）
   deploy-preview:
@@ -100,4 +129,25 @@ jobs:
             git push
           else
             echo "Preview directory not found, skipping."
+          fi
+
+  # ④ develop ブランチ削除時（開発ページ削除）
+  cleanup-develop:
+    if: github.event_name == 'delete' && github.event.ref_type == 'branch' && github.event.ref == 'develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Remove develop directory
+        run: |
+          if [ -d "develop" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git rm -rf "develop"
+            git commit -m "chore: remove develop page"
+            git push
+          else
+            echo "Develop directory not found, skipping."
           fi
