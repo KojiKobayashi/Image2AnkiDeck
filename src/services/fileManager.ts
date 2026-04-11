@@ -37,7 +37,7 @@ function extractPaddingFromCsvText(text: string): number {
   return maxPadding;
 }
 
-function extractIndexAndPaddingFromFilename(filename: string): { index: number; padding: number } {
+function parseCardImageFilename(filename: string): { index: number; padding: number } {
   const match = /^(?:q|a)_(\d+)\.png$/i.exec(filename);
   if (!match) {
     return { index: 0, padding: 0 };
@@ -47,11 +47,12 @@ function extractIndexAndPaddingFromFilename(filename: string): { index: number; 
   return Number.isNaN(parsed) ? { index: 0, padding: 0 } : { index: parsed, padding: match[1].length };
 }
 
+function isValidCardNumberPadding(padding: number): boolean {
+  return Number.isInteger(padding) && padding >= 1 && padding <= MAX_CARD_NUMBER_PADDING;
+}
+
 function formatCardNumber(num: number, padding: number): string {
-  const safePadding =
-    Number.isInteger(padding) && padding >= 1 && padding <= MAX_CARD_NUMBER_PADDING
-      ? padding
-      : DEFAULT_CARD_NUMBER_PADDING;
+  const safePadding = isValidCardNumberPadding(padding) ? padding : DEFAULT_CARD_NUMBER_PADDING;
   return String(num).padStart(safePadding, "0");
 }
 
@@ -78,11 +79,7 @@ function normalizeCsv(existingCsv: string): string[] {
 }
 
 function resolveCardNumberPadding(detectedPadding: number): number {
-  if (
-    Number.isInteger(detectedPadding) &&
-    detectedPadding >= 1 &&
-    detectedPadding <= MAX_CARD_NUMBER_PADDING
-  ) {
+  if (isValidCardNumberPadding(detectedPadding)) {
     return detectedPadding;
   }
   return DEFAULT_CARD_NUMBER_PADDING;
@@ -207,7 +204,7 @@ export async function appendCardsToExistingDeck(
   let detectedPadding = extractPaddingFromCsvText(csvLines.join("\n"));
 
   Object.keys(zip.files).forEach((filename) => {
-    const { index, padding } = extractIndexAndPaddingFromFilename(filename);
+    const { index, padding } = parseCardImageFilename(filename);
     maxIndex = Math.max(maxIndex, index);
     detectedPadding = Math.max(detectedPadding, padding);
   });
