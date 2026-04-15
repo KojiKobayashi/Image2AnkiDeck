@@ -1,7 +1,6 @@
 import JSZip from "jszip";
 import type { Session, SessionCard } from "../types";
 
-const CSV_HEADER = "Front,Back";
 const DEFAULT_DECK_NAME = "deck";
 const ZIP_CARD_ID_PREFIX = "zip-";
 const ZIP_CARD_ID_PADDING = 6;
@@ -78,15 +77,7 @@ function normalizeCsv(existingCsv: string): string[] {
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
 
-  if (lines.length === 0) {
-    return [CSV_HEADER];
-  }
-
-  if (lines[0] !== CSV_HEADER) {
-    return [CSV_HEADER, ...lines];
-  }
-
-  return lines;
+  return lines.filter((line) => !/^front\s*,\s*back$/i.test(line));
 }
 
 function resolveCardNumberPadding(detectedPadding: number): number {
