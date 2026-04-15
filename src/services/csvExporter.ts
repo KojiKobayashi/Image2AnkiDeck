@@ -31,7 +31,6 @@ function toMediaFileName(prefix: "q" | "a", index: number, padding: number): str
 /**
  * カード配列からAnkiインポート用CSV文字列を生成する。
  * 出力形式:
- * Front,Back
  * "<img src=""q_001.png"">","<img src=""a_001.png"">"
  */
 export function createDeckCsv(cards: Card[], options: CsvExportOptions = {}): string {
@@ -67,5 +66,5 @@ export function createDeckCsv(cards: Card[], options: CsvExportOptions = {}): st
     return `${escapeCsvField(front)},${escapeCsvField(back)}`;
   });
 
-  return `${["Front,Back", ...rows].join("\n")}\n`;
+  return `${rows.join("\n")}\n`;
 }
