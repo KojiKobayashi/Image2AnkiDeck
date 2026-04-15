@@ -77,7 +77,7 @@ function normalizeCsv(existingCsv: string): string[] {
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
 
-  return lines.filter((line) => !/^front\s*,\s*back$/i.test(line));
+  return lines.filter((line) => !/^front,back$/i.test(line));
 }
 
 function resolveCardNumberPadding(detectedPadding: number): number {
