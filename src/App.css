@@ -147,6 +147,12 @@ h1 {
   font-size: 0.92rem;
 }
 
+.upload-area__buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 /* ---- Canvasラッパー ---- */
 .canvas-wrapper {
   border: 1px solid #ccc;
