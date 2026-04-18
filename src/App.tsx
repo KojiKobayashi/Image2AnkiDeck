@@ -214,18 +214,34 @@ function App() {
         <div className={`column ${isQuestionStep ? "column--active" : "column--inactive"}`}>
           <h2 className="column__title">問題画像</h2>
           <div className="upload-area">
-            <label htmlFor="question-upload" className="upload-area__label">
-              画像を選択（PNG推奨）：
-            </label>
-            <input
-              id="question-upload"
-              type="file"
-              accept="image/*"
-              onClick={(e) => {
-                e.currentTarget.value = "";
-              }}
-              onChange={handleQuestionFileChange}
-            />
+            <p className="upload-area__label">画像を選択（PNG推奨）：</p>
+            <div className="upload-area__buttons">
+              <label className="btn btn--secondary btn--file">
+                ファイルから選ぶ
+                <input
+                  id="question-upload"
+                  type="file"
+                  accept="image/*"
+                  onClick={(e) => {
+                    e.currentTarget.value = "";
+                  }}
+                  onChange={handleQuestionFileChange}
+                />
+              </label>
+              <label className="btn btn--secondary btn--file">
+                📷 カメラで撮影
+                <input
+                  id="question-camera-upload"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onClick={(e) => {
+                    e.currentTarget.value = "";
+                  }}
+                  onChange={handleQuestionFileChange}
+                />
+              </label>
+            </div>
           </div>
 
           {questionImageSrc ? (
@@ -253,18 +269,34 @@ function App() {
         <div className={`column ${!isQuestionStep ? "column--active" : "column--inactive"}`}>
           <h2 className="column__title">解答画像</h2>
           <div className="upload-area">
-            <label htmlFor="answer-upload" className="upload-area__label">
-              画像を選択（PNG推奨）：
-            </label>
-            <input
-              id="answer-upload"
-              type="file"
-              accept="image/*"
-              onClick={(e) => {
-                e.currentTarget.value = "";
-              }}
-              onChange={handleAnswerFileChange}
-            />
+            <p className="upload-area__label">画像を選択（PNG推奨）：</p>
+            <div className="upload-area__buttons">
+              <label className="btn btn--secondary btn--file">
+                ファイルから選ぶ
+                <input
+                  id="answer-upload"
+                  type="file"
+                  accept="image/*"
+                  onClick={(e) => {
+                    e.currentTarget.value = "";
+                  }}
+                  onChange={handleAnswerFileChange}
+                />
+              </label>
+              <label className="btn btn--secondary btn--file">
+                📷 カメラで撮影
+                <input
+                  id="answer-camera-upload"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onClick={(e) => {
+                    e.currentTarget.value = "";
+                  }}
+                  onChange={handleAnswerFileChange}
+                />
+              </label>
+            </div>
           </div>
 
           {answerImageSrc ? (
