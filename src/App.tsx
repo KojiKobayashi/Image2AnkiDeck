@@ -32,7 +32,9 @@ function readFileAsDataUrl(file: File): Promise<string> {
 function App() {
   const [deckName, setDeckName] = useState<string>("");
   const [questionImageSrc, setQuestionImageSrc] = useState<string | null>(null);
+  const [questionText, setQuestionText] = useState<string>("");
   const [answerImageSrc, setAnswerImageSrc] = useState<string | null>(null);
+  const [answerText, setAnswerText] = useState<string>("");
   const [questionSelection, setQuestionSelection] = useState<Rect | null>(null);
   const [answerSelection, setAnswerSelection] = useState<Rect | null>(null);
   const [sessionError, setSessionError] = useState<string | null>(null);
@@ -76,22 +78,28 @@ function App() {
 
   /** 問題領域を登録してステップを「解答選択」へ */
   const handleRegisterQuestion = useCallback(() => {
-    if (!questionImageSrc || !questionSelection) return;
-    registerQuestion(questionImageSrc, questionSelection);
+    const hasQuestionImage = questionImageSrc !== null && questionSelection !== null;
+    const hasQuestionText = questionText.trim().length > 0;
+    if (!hasQuestionImage && !hasQuestionText) return;
+    registerQuestion(questionImageSrc, questionSelection, questionText);
     setQuestionSelection(null);
-  }, [questionImageSrc, questionSelection, registerQuestion]);
+  }, [questionImageSrc, questionSelection, questionText, registerQuestion]);
 
   /** 解答領域を登録してカードを生成する */
   const handleRegisterAnswer = useCallback(async () => {
-    if (!answerImageSrc || !answerSelection) return;
+    const hasAnswerImage = answerImageSrc !== null && answerSelection !== null;
+    const hasAnswerText = answerText.trim().length > 0;
+    if (!hasAnswerImage && !hasAnswerText) return;
     try {
-      await registerAnswer(answerImageSrc, answerSelection);
+      await registerAnswer(answerImageSrc, answerSelection, answerText);
+      setQuestionText("");
       setAnswerSelection(null);
+      setAnswerText("");
     } catch (error) {
       const detail = error instanceof Error ? error.message : "不明なエラー";
       setSessionError(`解答の登録に失敗しました: ${detail}`);
     }
-  }, [answerImageSrc, answerSelection, registerAnswer]);
+  }, [answerImageSrc, answerSelection, answerText, registerAnswer]);
 
   const handleSaveSession = useCallback(() => {
     const session: Session = {
@@ -111,7 +119,9 @@ function App() {
         await restoreFromSession(session.cards);
         const lastCard = session.cards[session.cards.length - 1];
         setQuestionImageSrc(lastCard?.questionImageSrc ?? null);
+        setQuestionText(lastCard?.questionText ?? "");
         setAnswerImageSrc(lastCard?.answerImageSrc ?? null);
+        setAnswerText(lastCard?.answerText ?? "");
         setQuestionSelection(null);
         setAnswerSelection(null);
         setSessionError(null);
@@ -145,7 +155,9 @@ function App() {
         setDeckName(session.deckName);
         await restoreFromSession(session.cards);
         setQuestionImageSrc(null);
+        setQuestionText("");
         setAnswerImageSrc(null);
+        setAnswerText("");
         setQuestionSelection(null);
         setAnswerSelection(null);
         setSessionError(null);
@@ -160,6 +172,12 @@ function App() {
   );
 
   const isQuestionStep = step === "question";
+  const canRegisterQuestion =
+    isQuestionStep &&
+    (questionText.trim().length > 0 || (questionImageSrc !== null && questionSelection !== null));
+  const canRegisterAnswer =
+    !isQuestionStep &&
+    (answerText.trim().length > 0 || (answerImageSrc !== null && answerSelection !== null));
 
   return (
     <div className="app-container">
@@ -212,7 +230,7 @@ function App() {
 
       <div className="columns">
         <div className={`column ${isQuestionStep ? "column--active" : "column--inactive"}`}>
-          <h2 className="column__title">問題画像</h2>
+          <h2 className="column__title">問題（画像 / テキスト）</h2>
           <div className="upload-area">
             <p className="upload-area__label">画像を選択（PNG推奨）：</p>
             <div className="upload-area__buttons">
@@ -243,6 +261,19 @@ function App() {
               </label>
             </div>
           </div>
+          <div className="upload-area">
+            <label htmlFor="question-text" className="upload-area__label">
+              テキスト入力：
+            </label>
+            <textarea
+              id="question-text"
+              className="text-input-area"
+              rows={4}
+              placeholder="問題テキストを入力（画像と併用可）"
+              value={questionText}
+              onChange={(e) => setQuestionText(e.target.value)}
+            />
+          </div>
 
           {questionImageSrc ? (
             <>
@@ -255,19 +286,24 @@ function App() {
               </div>
               <button
                 className="btn btn--primary"
-                disabled={!questionSelection || !isQuestionStep}
+                disabled={!canRegisterQuestion}
                 onClick={handleRegisterQuestion}
               >
                 問題を登録
               </button>
             </>
           ) : (
-            <p className="hint">← 問題画像をアップロードしてください</p>
+            <>
+              <p className="hint">画像を使う場合は問題画像をアップロードしてください</p>
+              <button className="btn btn--primary" disabled={!canRegisterQuestion} onClick={handleRegisterQuestion}>
+                問題を登録
+              </button>
+            </>
           )}
         </div>
 
         <div className={`column ${!isQuestionStep ? "column--active" : "column--inactive"}`}>
-          <h2 className="column__title">解答画像</h2>
+          <h2 className="column__title">解答（画像 / テキスト）</h2>
           <div className="upload-area">
             <p className="upload-area__label">画像を選択（PNG推奨）：</p>
             <div className="upload-area__buttons">
@@ -298,6 +334,19 @@ function App() {
               </label>
             </div>
           </div>
+          <div className="upload-area">
+            <label htmlFor="answer-text" className="upload-area__label">
+              テキスト入力：
+            </label>
+            <textarea
+              id="answer-text"
+              className="text-input-area"
+              rows={4}
+              placeholder="解答テキストを入力（画像と併用可）"
+              value={answerText}
+              onChange={(e) => setAnswerText(e.target.value)}
+            />
+          </div>
 
           {answerImageSrc ? (
             <>
@@ -310,14 +359,19 @@ function App() {
               </div>
               <button
                 className="btn btn--primary"
-                disabled={!answerSelection || isQuestionStep}
+                disabled={!canRegisterAnswer}
                 onClick={handleRegisterAnswer}
               >
                 解答を登録
               </button>
             </>
           ) : (
-            <p className="hint">← 解答画像をアップロードしてください</p>
+            <>
+              <p className="hint">画像を使う場合は解答画像をアップロードしてください</p>
+              <button className="btn btn--primary" disabled={!canRegisterAnswer} onClick={handleRegisterAnswer}>
+                解答を登録
+              </button>
+            </>
           )}
         </div>
       </div>

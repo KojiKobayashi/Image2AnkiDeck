@@ -19,6 +19,21 @@ function isValidRectSize(value: unknown): value is number {
   return isFiniteNumber(value) && value > 0 && value <= MAX_RECT_SIDE_LENGTH;
 }
 
+function isValidRect(value: unknown): boolean {
+  if (value === null) {
+    return true;
+  }
+  if (!isRecord(value)) {
+    return false;
+  }
+  return (
+    isFiniteNumber(value.x) &&
+    isFiniteNumber(value.y) &&
+    isValidRectSize(value.w) &&
+    isValidRectSize(value.h)
+  );
+}
+
 function assertValidSession(value: unknown): asserts value is Session {
   if (!isRecord(value)) {
     throw new Error("セッション形式が不正です");
@@ -36,25 +51,39 @@ function assertValidSession(value: unknown): asserts value is Session {
     }
     if (
       typeof card.id !== "string" ||
-      typeof card.questionImageSrc !== "string" ||
-      typeof card.answerImageSrc !== "string"
+      (card.questionImageSrc !== null && typeof card.questionImageSrc !== "string") ||
+      (card.answerImageSrc !== null && typeof card.answerImageSrc !== "string") ||
+      typeof card.questionText !== "string" ||
+      typeof card.answerText !== "string"
     ) {
       throw new Error("カードの必須項目が不足しています");
     }
-    if (!isRecord(card.questionRect) || !isRecord(card.answerRect)) {
+    if (!isValidRect(card.questionRect) || !isValidRect(card.answerRect)) {
       throw new Error("矩形情報が不正です");
     }
     if (
-      !isFiniteNumber(card.questionRect.x) ||
-      !isFiniteNumber(card.questionRect.y) ||
-      !isValidRectSize(card.questionRect.w) ||
-      !isValidRectSize(card.questionRect.h) ||
-      !isFiniteNumber(card.answerRect.x) ||
-      !isFiniteNumber(card.answerRect.y) ||
-      !isValidRectSize(card.answerRect.w) ||
-      !isValidRectSize(card.answerRect.h)
+      card.questionImageSrc !== null &&
+      card.questionRect === null
     ) {
-      throw new Error("矩形情報が不正です");
+      throw new Error("問題画像の矩形情報が不足しています");
+    }
+    if (
+      card.answerImageSrc !== null &&
+      card.answerRect === null
+    ) {
+      throw new Error("解答画像の矩形情報が不足しています");
+    }
+    if (
+      card.questionImageSrc === null &&
+      card.questionText.trim().length === 0
+    ) {
+      throw new Error("問題は画像またはテキストのいずれかが必要です");
+    }
+    if (
+      card.answerImageSrc === null &&
+      card.answerText.trim().length === 0
+    ) {
+      throw new Error("解答は画像またはテキストのいずれかが必要です");
     }
   }
 }

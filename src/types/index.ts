@@ -14,17 +14,21 @@ export type Rect = {
 /** 問題・解答のペア */
 export type Card = {
   id: string;
-  questionImage: string;
-  answerImage: string;
+  questionImage: string | null;
+  questionText: string;
+  answerImage: string | null;
+  answerText: string;
 };
 
 /** セッション保存形式のカード */
 export type SessionCard = {
   id: string;
-  questionRect: { x: number; y: number; w: number; h: number };
-  answerRect: { x: number; y: number; w: number; h: number };
-  questionImageSrc: string;
-  answerImageSrc: string;
+  questionRect: { x: number; y: number; w: number; h: number } | null;
+  answerRect: { x: number; y: number; w: number; h: number } | null;
+  questionImageSrc: string | null;
+  questionText: string;
+  answerImageSrc: string | null;
+  answerText: string;
 };
 
 /** セッション保存形式 */
