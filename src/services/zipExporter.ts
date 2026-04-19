@@ -130,7 +130,7 @@ function createDeckIdFromUuid(): number {
   if (webCrypto && typeof webCrypto.randomUUID === "function") {
     const uuidHex = webCrypto.randomUUID().replaceAll("-", "");
     const safeRange = BigInt(Number.MAX_SAFE_INTEGER - 1);
-    return Number(BigInt(`0x${uuidHex}`) % safeRange);
+    return Number((BigInt(`0x${uuidHex}`) % safeRange) + 1n);
   }
   return Date.now();
 }
@@ -269,12 +269,11 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
     if (templateDeckEntry == null) {
       throw new Error("template collection のデッキ情報が不正です");
     }
-    const deckNameForAnki = deckName.trim() || "Default";
     const deckId = createDeckIdFromUuid();
     const updatedDeckEntry = {
       ...templateDeckEntry,
       id: deckId,
-      name: sanitizeDeckNameForAnki(deckNameForAnki),
+      name: sanitizeDeckNameForAnki(deckName),
       mod: nowSec,
     };
     const updatedDecks = { ...decks };
