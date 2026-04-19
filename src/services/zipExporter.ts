@@ -50,8 +50,8 @@ export type ZipExportOptions = {
   deckName?: string;
 };
 
-function toMediaFileName(prefix: "q" | "a", index: number, padding: number, deckUuid: string): string {
-  return `${deckUuid}_${prefix}_${String(index).padStart(padding, "0")}.png`;
+function toMediaFileName(prefix: "q" | "a", index: number, padding: number, deckPrefix: string): string {
+  return `${deckPrefix}_${prefix}_${String(index).padStart(padding, "0")}.png`;
 }
 
 async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
@@ -88,11 +88,19 @@ function hash32(text: string): number {
   return hash >>> 0;
 }
 
-function createDeckUuid(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID().replaceAll("-", "").slice(0, 6);
+function createDeckPrefix(): string {
+  const webCrypto = globalThis.crypto;
+  if (webCrypto && typeof webCrypto.randomUUID === "function") {
+    return webCrypto.randomUUID().replaceAll("-", "").slice(0, 6);
   }
-  return Math.random().toString(16).slice(2, 8).padEnd(6, "0");
+
+  if (webCrypto && typeof webCrypto.getRandomValues === "function") {
+    const bytes = new Uint8Array(3);
+    webCrypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  return Date.now().toString(16).slice(-6).padStart(6, "0");
 }
 
 function buildCardHtml(card: Card, mediaNames: { question?: string; answer?: string }): { front: string; back: string } {
@@ -154,7 +162,7 @@ function sanitizeDeckNameForAnki(deckName: string): string {
   return trimmed.length > 0 ? trimmed : "Default";
 }
 
-function sanitizeGuid(value: string): string {
+function sanitizeForIdentifier(value: string): string {
   return value.replaceAll(/[^A-Za-z0-9]/g, "").slice(0, 16) || "guid";
 }
 
@@ -193,7 +201,7 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
     throw new Error(`padding (${padding}) は 1 以上の整数である必要があります`);
   }
 
-  const deckUuid = createDeckUuid();
+  const deckPrefix = createDeckPrefix();
   const templateZip = await loadTemplateZip();
   const collectionFile = templateZip.file("collection.anki2");
   if (collectionFile == null) {
@@ -205,6 +213,7 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
 
   try {
     const nowMs = Date.now();
+    const noteIdBase = nowMs * 1000;
     const nowSec = Math.floor(nowMs / 1000);
     const colRow = db.exec("SELECT id, models, decks FROM col LIMIT 1");
     if (colRow.length === 0 || colRow[0].values.length === 0) {
@@ -255,7 +264,7 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
         const mediaNames: { question?: string; answer?: string } = {};
 
         if (card.questionImage) {
-          const questionName = toMediaFileName("q", sequence, padding, deckUuid);
+          const questionName = toMediaFileName("q", sequence, padding, deckPrefix);
           const questionBlob = await dataUrlToBlob(card.questionImage);
           const mediaId = String(mediaIndex);
           templateZip.file(mediaId, questionBlob);
@@ -265,7 +274,7 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
         }
 
         if (card.answerImage) {
-          const answerName = toMediaFileName("a", sequence, padding, deckUuid);
+          const answerName = toMediaFileName("a", sequence, padding, deckPrefix);
           const answerBlob = await dataUrlToBlob(card.answerImage);
           const mediaId = String(mediaIndex);
           templateZip.file(mediaId, answerBlob);
@@ -275,8 +284,8 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
         }
 
         const { front, back } = buildCardHtml(card, mediaNames);
-        const noteId = nowMs + offset;
-        const guid = sanitizeGuid(`${deckUuid}${sequence}${noteId.toString(36)}`);
+        const noteId = noteIdBase + offset;
+        const guid = sanitizeForIdentifier(`${deckPrefix}-${sequence}-${noteId.toString(36)}`);
         const fields = `${front}${FIELD_SEPARATOR}${back}`;
         const checksum = hash32(front);
 
