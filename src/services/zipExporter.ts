@@ -125,6 +125,15 @@ function createDeckPrefix(): string {
   return Date.now().toString(16).slice(-6).padStart(6, "0");
 }
 
+function createDeckIdFromUuid(): number {
+  const webCrypto = globalThis.crypto;
+  if (webCrypto && typeof webCrypto.randomUUID === "function") {
+    const hex = webCrypto.randomUUID().replaceAll("-", "").slice(0, 12);
+    return Number.parseInt(hex, 16);
+  }
+  return Date.now();
+}
+
 function buildCardHtml(card: Card, mediaNames: { question?: string; answer?: string }): { front: string; back: string } {
   const hasQuestionImage = typeof card.questionImage === "string" && card.questionImage.trim().length > 0;
   const hasQuestionText = card.questionText.trim().length > 0;
@@ -254,17 +263,23 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
       Object.values(models).find((model) => model.name === "Basic") ?? Object.values(models)[0];
     const modelId = Number(basicModel?.id ?? Object.keys(models)[0]);
 
-    const deckEntry = decks["1"] ?? Object.values(decks)[0];
-    const deckId = Number(deckEntry?.id ?? 1);
-    if (deckEntry) {
-      deckEntry.name = sanitizeDeckNameForAnki(sanitizeFileBaseName(deckName));
-      deckEntry.mod = nowSec;
+    const templateDeckEntry = decks["1"] ?? Object.values(decks)[0];
+    if (templateDeckEntry == null) {
+      throw new Error("template collection のデッキ情報が不正です");
     }
+    const deckId = createDeckIdFromUuid();
+    const updatedDeckEntry = {
+      ...templateDeckEntry,
+      id: deckId,
+      name: sanitizeDeckNameForAnki(deckName),
+      mod: nowSec,
+    };
+    const updatedDecks = { [String(deckId)]: updatedDeckEntry };
 
     db.run("UPDATE col SET mod = ?, scm = ?, decks = ? WHERE id = ?", [
       nowSec,
       nowMs,
-      JSON.stringify(decks),
+      JSON.stringify(updatedDecks),
       colId,
     ]);
 
