@@ -149,6 +149,9 @@ async function getSqlJs() {
   if (sqlJsPromise === null) {
     sqlJsPromise = initSqlJs({
       locateFile: () => sqlWasmUrl,
+    }).catch((error) => {
+      sqlJsPromise = null;
+      throw error;
     });
   }
   return sqlJsPromise;
@@ -184,13 +187,13 @@ export async function loadDeckApkgAsSession(deckZipFile: File): Promise<Session>
     mediaIdByName.set(fileName, mediaId);
   });
 
-  const db = new SQL.Database(collectionBinary);
+  let db: InstanceType<typeof SQL.Database> | null = null;
   const cards: SessionCard[] = [];
   let parsedDeckId: number | null = null;
   let parsedDeckName: string | null = null;
-  let loadedCardCount = 0;
 
   try {
+    db = new SQL.Database(collectionBinary);
     const didRow = db.exec("SELECT did FROM cards ORDER BY id LIMIT 1");
     parsedDeckId = parseDeckId(didRow[0]?.values?.[0]?.[0] ?? null);
 
@@ -250,7 +253,7 @@ export async function loadDeckApkgAsSession(deckZipFile: File): Promise<Session>
         }
 
         cards.push({
-          id: `${APKG_CARD_ID_PREFIX}${String(loadedCardCount + 1).padStart(APKG_CARD_ID_PADDING, "0")}`,
+          id: `${APKG_CARD_ID_PREFIX}${String(cards.length + 1).padStart(APKG_CARD_ID_PADDING, "0")}`,
           questionRect: questionSize ? { x: 0, y: 0, w: questionSize.width, h: questionSize.height } : null,
           answerRect: answerSize ? { x: 0, y: 0, w: answerSize.width, h: answerSize.height } : null,
           questionImageSrc,
@@ -258,11 +261,10 @@ export async function loadDeckApkgAsSession(deckZipFile: File): Promise<Session>
           answerImageSrc,
           answerText,
         });
-        loadedCardCount += 1;
       }
     }
   } finally {
-    db.close();
+    db?.close();
   }
 
   if (cards.length === 0) {
