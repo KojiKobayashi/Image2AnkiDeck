@@ -54,12 +54,34 @@ function toMediaFileName(prefix: "q" | "a", index: number, padding: number, deck
   return `${deckPrefix}_${prefix}_${String(index).padStart(padding, "0")}.png`;
 }
 
-async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
-  const response = await fetch(dataUrl);
-  if (!response.ok) {
-    throw new Error("画像データの変換に失敗しました");
-  }
-  return response.blob();
+function dataUrlToPngBlob(dataUrl: string): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext("2d");
+      if (context == null) {
+        reject(new Error("画像データの変換に失敗しました"));
+        return;
+      }
+      context.drawImage(image, 0, 0);
+      canvas.toBlob(
+        (blob) => {
+          if (blob == null) {
+            reject(new Error("画像データの変換に失敗しました"));
+            return;
+          }
+          resolve(blob);
+        },
+        "image/png",
+        1
+      );
+    };
+    image.onerror = () => reject(new Error("画像データの変換に失敗しました"));
+    image.src = dataUrl;
+  });
 }
 
 function escapeHtml(value: string): string {
@@ -203,6 +225,9 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
 
   const deckPrefix = createDeckPrefix();
   const templateZip = await loadTemplateZip();
+  templateZip.remove("collection.anki21");
+  templateZip.remove("collection.anki21b");
+  templateZip.remove("meta");
   const collectionFile = templateZip.file("collection.anki2");
   if (collectionFile == null) {
     throw new Error("template.zip に collection.anki2 が含まれていません");
@@ -265,7 +290,7 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
 
         if (card.questionImage) {
           const questionName = toMediaFileName("q", sequence, padding, deckPrefix);
-          const questionBlob = await dataUrlToBlob(card.questionImage);
+          const questionBlob = await dataUrlToPngBlob(card.questionImage);
           const mediaId = String(mediaIndex);
           templateZip.file(mediaId, questionBlob);
           mediaMap[mediaId] = questionName;
@@ -275,7 +300,7 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
 
         if (card.answerImage) {
           const answerName = toMediaFileName("a", sequence, padding, deckPrefix);
-          const answerBlob = await dataUrlToBlob(card.answerImage);
+          const answerBlob = await dataUrlToPngBlob(card.answerImage);
           const mediaId = String(mediaIndex);
           templateZip.file(mediaId, answerBlob);
           mediaMap[mediaId] = answerName;
