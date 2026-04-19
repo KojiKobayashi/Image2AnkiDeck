@@ -12,6 +12,7 @@ import { loadDeckZipAsSession } from "./services/fileManager";
 import { downloadSession, loadSession } from "./services/sessionManager";
 import { downloadDeckZip, sanitizeFileBaseName } from "./services/zipExporter";
 import type { Rect, Session } from "./types";
+import { generateId } from "./utils/idGenerator";
 import "./App.css";
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -31,6 +32,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
 
 function App() {
   const [deckName, setDeckName] = useState<string>("");
+  const [deckUuid, setDeckUuid] = useState<string>(() => generateId());
   const [questionImageSrc, setQuestionImageSrc] = useState<string | null>(null);
   const [questionText, setQuestionText] = useState<string>("");
   const [answerImageSrc, setAnswerImageSrc] = useState<string | null>(null);
@@ -104,10 +106,11 @@ function App() {
   const handleSaveSession = useCallback(() => {
     const session: Session = {
       deckName,
+      deckUuid,
       cards: sessionCards,
     };
     downloadSession(session, `${sanitizeFileBaseName(deckName)}-session.json`);
-  }, [deckName, sessionCards]);
+  }, [deckName, deckUuid, sessionCards]);
 
   const handleLoadSession = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,6 +119,7 @@ function App() {
       try {
         const session = await loadSession(file);
         setDeckName(session.deckName);
+        setDeckUuid(session.deckUuid);
         await restoreFromSession(session.cards);
         const lastCard = session.cards[session.cards.length - 1];
         setQuestionImageSrc(lastCard?.questionImageSrc ?? null);
@@ -137,14 +141,14 @@ function App() {
 
   const handleSaveZip = useCallback(async () => {
     try {
-      await downloadDeckZip(cards, deckName);
+      await downloadDeckZip(cards, deckName, deckUuid);
       setZipError(null);
     } catch (error) {
       const detail =
         error instanceof Error ? error.message : "ZIP生成中に不明なエラーが発生しました";
       setZipError(`ZIPの保存に失敗しました: ${detail}`);
     }
-  }, [cards, deckName]);
+  }, [cards, deckName, deckUuid]);
 
   const handleLoadDeckZip = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,6 +157,7 @@ function App() {
       try {
         const session = await loadDeckZipAsSession(file);
         setDeckName(session.deckName);
+        setDeckUuid(session.deckUuid);
         await restoreFromSession(session.cards);
         setQuestionImageSrc(null);
         setQuestionText("");
