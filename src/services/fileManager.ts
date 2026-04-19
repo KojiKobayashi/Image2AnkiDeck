@@ -173,7 +173,12 @@ export async function loadDeckApkgAsSession(deckZipFile: File): Promise<Session>
     mediaFile.async("text"),
     getSqlJs(),
   ]);
-  const mediaMap = JSON.parse(mediaText) as Record<string, string>;
+  let mediaMap: Record<string, string>;
+  try {
+    mediaMap = JSON.parse(mediaText) as Record<string, string>;
+  } catch {
+    throw new Error("APKGのmedia情報が不正です");
+  }
   const mediaIdByName = new Map<string, string>();
   Object.entries(mediaMap).forEach(([mediaId, fileName]) => {
     mediaIdByName.set(fileName, mediaId);
@@ -183,6 +188,7 @@ export async function loadDeckApkgAsSession(deckZipFile: File): Promise<Session>
   const cards: SessionCard[] = [];
   let parsedDeckId: number | null = null;
   let parsedDeckName: string | null = null;
+  let loadedCardCount = 0;
 
   try {
     const didRow = db.exec("SELECT did FROM cards ORDER BY id LIMIT 1");
@@ -190,7 +196,12 @@ export async function loadDeckApkgAsSession(deckZipFile: File): Promise<Session>
 
     const colRow = db.exec("SELECT decks FROM col LIMIT 1");
     if (colRow.length > 0 && colRow[0].values.length > 0) {
-      const decks = JSON.parse(String(colRow[0].values[0][0])) as Record<string, { name?: string }>;
+      let decks: Record<string, { name?: string }>;
+      try {
+        decks = JSON.parse(String(colRow[0].values[0][0])) as Record<string, { name?: string }>;
+      } catch {
+        throw new Error("APKGのデッキ情報が不正です");
+      }
       if (parsedDeckId !== null) {
         parsedDeckName = decks[String(parsedDeckId)]?.name ?? null;
       }
@@ -203,7 +214,7 @@ export async function loadDeckApkgAsSession(deckZipFile: File): Promise<Session>
       "SELECT cards.id, notes.flds FROM cards JOIN notes ON notes.id = cards.nid ORDER BY cards.due ASC, cards.id ASC"
     );
     if (rows.length > 0) {
-      for (const [rowIndex, row] of rows[0].values.entries()) {
+      for (const row of rows[0].values) {
         const [, fieldsRaw] = row;
         const [frontRaw, backRaw] = String(fieldsRaw).split(FIELD_SEPARATOR);
         const front = frontRaw ?? "";
@@ -239,7 +250,7 @@ export async function loadDeckApkgAsSession(deckZipFile: File): Promise<Session>
         }
 
         cards.push({
-          id: `${APKG_CARD_ID_PREFIX}${String(rowIndex + 1).padStart(APKG_CARD_ID_PADDING, "0")}`,
+          id: `${APKG_CARD_ID_PREFIX}${String(loadedCardCount + 1).padStart(APKG_CARD_ID_PADDING, "0")}`,
           questionRect: questionSize ? { x: 0, y: 0, w: questionSize.width, h: questionSize.height } : null,
           answerRect: answerSize ? { x: 0, y: 0, w: answerSize.width, h: answerSize.height } : null,
           questionImageSrc,
@@ -247,6 +258,7 @@ export async function loadDeckApkgAsSession(deckZipFile: File): Promise<Session>
           answerImageSrc,
           answerText,
         });
+        loadedCardCount += 1;
       }
     }
   } finally {
