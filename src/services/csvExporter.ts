@@ -24,6 +24,19 @@ function toImageTag(fileName: string): string {
   return `<img src="${fileName}">`;
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function toTextHtml(text: string): string {
+  return escapeHtml(text).replaceAll("\n", "<br>");
+}
+
 function toMediaFileName(prefix: "q" | "a", index: number, padding: number): string {
   return `${prefix}_${String(index).padStart(padding, "0")}.png`;
 }
@@ -47,13 +60,15 @@ export function createDeckCsv(cards: Card[], options: CsvExportOptions = {}): st
   const rows = cards.map((card, offset) => {
     const hasQuestionImage =
       typeof card.questionImage === "string" && card.questionImage.trim().length > 0;
+    const hasQuestionText = card.questionText.trim().length > 0;
     const hasAnswerImage =
       typeof card.answerImage === "string" && card.answerImage.trim().length > 0;
+    const hasAnswerText = card.answerText.trim().length > 0;
 
-    if (!hasQuestionImage || !hasAnswerImage) {
+    if ((!hasQuestionImage && !hasQuestionText) || (!hasAnswerImage && !hasAnswerText)) {
       const missing = [
-        !hasQuestionImage ? "問題画像" : null,
-        !hasAnswerImage ? "解答画像" : null,
+        !hasQuestionImage && !hasQuestionText ? "問題（画像またはテキスト）" : null,
+        !hasAnswerImage && !hasAnswerText ? "解答（画像またはテキスト）" : null,
       ]
         .filter((value): value is string => value !== null)
         .join("・");
@@ -61,8 +76,18 @@ export function createDeckCsv(cards: Card[], options: CsvExportOptions = {}): st
     }
 
     const sequence = startIndex + offset;
-    const front = toImageTag(toMediaFileName("q", sequence, padding));
-    const back = toImageTag(toMediaFileName("a", sequence, padding));
+    const front = [
+      hasQuestionImage ? toImageTag(toMediaFileName("q", sequence, padding)) : null,
+      hasQuestionText ? toTextHtml(card.questionText) : null,
+    ]
+      .filter((value): value is string => value !== null)
+      .join("<br>");
+    const back = [
+      hasAnswerImage ? toImageTag(toMediaFileName("a", sequence, padding)) : null,
+      hasAnswerText ? toTextHtml(card.answerText) : null,
+    ]
+      .filter((value): value is string => value !== null)
+      .join("<br>");
     return `${escapeCsvField(front)},${escapeCsvField(back)}`;
   });
 

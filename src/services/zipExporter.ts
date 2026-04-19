@@ -92,12 +92,25 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
       const sequence = startIndex + offset;
       const questionFileName = toMediaFileName("q", sequence, padding);
       const answerFileName = toMediaFileName("a", sequence, padding);
-      const [questionBlob, answerBlob] = await Promise.all([
-        dataUrlToBlob(card.questionImage),
-        dataUrlToBlob(card.answerImage),
-      ]);
-      zip.file(questionFileName, questionBlob);
-      zip.file(answerFileName, answerBlob);
+      const tasks: Array<Promise<void>> = [];
+
+      if (card.questionImage) {
+        tasks.push(
+          dataUrlToBlob(card.questionImage).then((questionBlob) => {
+            zip.file(questionFileName, questionBlob);
+          })
+        );
+      }
+
+      if (card.answerImage) {
+        tasks.push(
+          dataUrlToBlob(card.answerImage).then((answerBlob) => {
+            zip.file(answerFileName, answerBlob);
+          })
+        );
+      }
+
+      await Promise.all(tasks);
     })
   );
 

@@ -181,7 +181,9 @@ export async function loadDeckZipAsSession(deckZipFile: File): Promise<Session> 
       questionRect: { x: 0, y: 0, w: questionSize.width, h: questionSize.height },
       answerRect: { x: 0, y: 0, w: answerSize.width, h: answerSize.height },
       questionImageSrc,
+      questionText: "",
       answerImageSrc,
+      answerText: "",
     });
   }
 

@@ -27,20 +27,30 @@ export function PreviewList({ cards, onRemove }: PreviewListProps) {
             <div className="preview-card__images">
               <div className="preview-card__image-box">
                 <span className="preview-card__label">問題</span>
-                <img
-                  src={card.questionImage}
-                  alt={`問題 ${index + 1}`}
-                  className="preview-card__img"
-                />
+                {card.questionImage ? (
+                  <img
+                    src={card.questionImage}
+                    alt={`問題 ${index + 1}`}
+                    className="preview-card__img"
+                  />
+                ) : null}
+                {card.questionText.trim().length > 0 ? (
+                  <p className="preview-card__text">{card.questionText}</p>
+                ) : null}
               </div>
               <div className="preview-card__arrow">→</div>
               <div className="preview-card__image-box">
                 <span className="preview-card__label">解答</span>
-                <img
-                  src={card.answerImage}
-                  alt={`解答 ${index + 1}`}
-                  className="preview-card__img"
-                />
+                {card.answerImage ? (
+                  <img
+                    src={card.answerImage}
+                    alt={`解答 ${index + 1}`}
+                    className="preview-card__img"
+                  />
+                ) : null}
+                {card.answerText.trim().length > 0 ? (
+                  <p className="preview-card__text">{card.answerText}</p>
+                ) : null}
               </div>
             </div>
             <button
