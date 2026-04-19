@@ -8,7 +8,7 @@ import { useCallback, useState } from "react";
 import { CanvasSelector } from "./components/CanvasSelector";
 import { PreviewList } from "./components/PreviewList";
 import { useCardRegistration } from "./hooks/useCardRegistration";
-import { loadDeckZipAsSession } from "./services/fileManager";
+import { loadDeckApkgAsSession } from "./services/fileManager";
 import { downloadSession, loadSession } from "./services/sessionManager";
 import { downloadDeckZip, sanitizeFileBaseName } from "./services/zipExporter";
 import type { Rect, Session } from "./types";
@@ -31,6 +31,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
 
 function App() {
   const [deckName, setDeckName] = useState<string>("");
+  const [deckId, setDeckId] = useState<number | null>(null);
   const [questionImageSrc, setQuestionImageSrc] = useState<string | null>(null);
   const [questionText, setQuestionText] = useState<string>("");
   const [answerImageSrc, setAnswerImageSrc] = useState<string | null>(null);
@@ -104,10 +105,11 @@ function App() {
   const handleSaveSession = useCallback(() => {
     const session: Session = {
       deckName,
+      deckId: deckId ?? undefined,
       cards: sessionCards,
     };
     downloadSession(session, `${sanitizeFileBaseName(deckName)}-session.json`);
-  }, [deckName, sessionCards]);
+  }, [deckId, deckName, sessionCards]);
 
   const handleLoadSession = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,6 +118,7 @@ function App() {
       try {
         const session = await loadSession(file);
         setDeckName(session.deckName);
+        setDeckId(session.deckId ?? null);
         await restoreFromSession(session.cards);
         const lastCard = session.cards[session.cards.length - 1];
         setQuestionImageSrc(lastCard?.questionImageSrc ?? null);
@@ -135,24 +138,25 @@ function App() {
     [restoreFromSession]
   );
 
-  const handleSaveZip = useCallback(async () => {
+  const handleSaveApkg = useCallback(async () => {
     try {
-      await downloadDeckZip(cards, deckName);
+      await downloadDeckZip(cards, deckName, deckId ?? undefined);
       setZipError(null);
     } catch (error) {
       const detail =
         error instanceof Error ? error.message : "APKG生成中に不明なエラーが発生しました";
       setZipError(`APKGの保存に失敗しました: ${detail}`);
     }
-  }, [cards, deckName]);
+  }, [cards, deckId, deckName]);
 
-  const handleLoadDeckZip = useCallback(
+  const handleLoadDeckApkg = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
       try {
-        const session = await loadDeckZipAsSession(file);
+        const session = await loadDeckApkgAsSession(file);
         setDeckName(session.deckName);
+        setDeckId(session.deckId ?? null);
         await restoreFromSession(session.cards);
         setQuestionImageSrc(null);
         setQuestionText("");
@@ -163,7 +167,7 @@ function App() {
         setSessionError(null);
       } catch (error) {
         const detail = error instanceof Error ? error.message : "不明なエラー";
-        setSessionError(`ZIPの読み込みに失敗しました: ${detail}`);
+        setSessionError(`APKGの読み込みに失敗しました: ${detail}`);
       } finally {
         e.target.value = "";
       }
@@ -206,10 +210,10 @@ function App() {
           <input type="file" accept=".json,application/json" onChange={handleLoadSession} />
         </label>
         <label className="btn btn--secondary btn--file">
-          ZIPを読み込む
-          <input type="file" accept=".zip,application/zip" onChange={handleLoadDeckZip} />
+          APKGを読み込む
+          <input type="file" accept=".apkg,application/zip" onChange={handleLoadDeckApkg} />
         </label>
-        <button className="btn btn--secondary" onClick={handleSaveZip} disabled={cards.length === 0}>
+        <button className="btn btn--secondary" onClick={handleSaveApkg} disabled={cards.length === 0}>
           APKGを保存
         </button>
       </div>

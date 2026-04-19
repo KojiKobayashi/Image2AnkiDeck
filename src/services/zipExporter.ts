@@ -48,6 +48,8 @@ export type ZipExportOptions = {
   padding?: number;
   /** Ankiデッキ名（既定: Default） */
   deckName?: string;
+  /** 既存APKGのデッキID（指定時はそのまま使用） */
+  deckId?: number;
 };
 
 function toMediaFileName(prefix: "q" | "a", index: number, padding: number, deckPrefix: string): string {
@@ -225,12 +227,19 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
   const startIndex = options.startIndex ?? 1;
   const padding = options.padding ?? DEFAULT_PADDING;
   const deckName = options.deckName ?? "";
+  const requestedDeckId = options.deckId;
 
   if (!Number.isInteger(startIndex) || startIndex < 1) {
     throw new Error(`startIndex (${startIndex}) は 1 以上の整数である必要があります`);
   }
   if (!Number.isInteger(padding) || padding < 1) {
     throw new Error(`padding (${padding}) は 1 以上の整数である必要があります`);
+  }
+  if (
+    requestedDeckId !== undefined &&
+    (!Number.isInteger(requestedDeckId) || requestedDeckId <= 0)
+  ) {
+    throw new Error(`deckId (${requestedDeckId}) は 1 以上の整数である必要があります`);
   }
 
   const deckPrefix = createDeckPrefix();
@@ -269,7 +278,7 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
     if (templateDeckEntry == null) {
       throw new Error("template collection のデッキ情報が不正です");
     }
-    const deckId = createDeckIdFromUuid();
+    const deckId = requestedDeckId ?? createDeckIdFromUuid();
     const updatedDeckEntry = {
       ...templateDeckEntry,
       id: deckId,
@@ -385,8 +394,8 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
   }
 }
 
-export async function downloadDeckZip(cards: Card[], deckName: string): Promise<void> {
-  const apkgBlob = await createDeckZip(cards, { deckName });
+export async function downloadDeckZip(cards: Card[], deckName: string, deckId?: number): Promise<void> {
+  const apkgBlob = await createDeckZip(cards, { deckName, deckId });
   const url = URL.createObjectURL(apkgBlob);
   const anchor = document.createElement("a");
   anchor.href = url;

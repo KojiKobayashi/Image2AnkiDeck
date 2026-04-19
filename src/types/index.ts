@@ -34,6 +34,7 @@ export type SessionCard = {
 /** セッション保存形式 */
 export type Session = {
   deckName: string;
+  deckId?: number;
   cards: SessionCard[];
 };
 

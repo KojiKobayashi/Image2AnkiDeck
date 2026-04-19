@@ -1,12 +1,17 @@
 import JSZip from "jszip";
+import initSqlJs from "sql.js";
+import sqlWasmUrl from "sql.js/dist/sql-wasm.wasm?url";
 import type { Session, SessionCard } from "../types";
 
 const DEFAULT_DECK_NAME = "deck";
-const ZIP_CARD_ID_PREFIX = "zip-";
-const ZIP_CARD_ID_PADDING = 6;
+const APKG_CARD_ID_PREFIX = "apkg-";
+const APKG_CARD_ID_PADDING = 6;
 const DEFAULT_CARD_NUMBER_PADDING = 4;
 const MAX_CARD_NUMBER_PADDING = 12;
 const CSV_HEADER_PATTERN = /^front,back$/i;
+const FIELD_SEPARATOR = "\x1f";
+
+let sqlJsPromise: ReturnType<typeof initSqlJs> | null = null;
 
 export type AppendCardInput = {
   questionImage: Blob;
@@ -113,86 +118,148 @@ function readImageSize(imageSrc: string): Promise<ImageSize> {
 }
 
 function toDeckName(fileName: string): string {
-  return fileName.replace(/\.zip$/i, "").trim() || DEFAULT_DECK_NAME;
+  return fileName.replace(/\.apkg$/i, "").trim() || DEFAULT_DECK_NAME;
 }
 
-export async function loadDeckZipAsSession(deckZipFile: File): Promise<Session> {
+function extractImageNameFromHtml(html: string): string | null {
+  const match = /<img\b[^>]*\bsrc=(['"]?)([^"'>\s]+)\1[^>]*>/i.exec(html);
+  return match?.[2] ?? null;
+}
+
+function htmlToText(html: string): string {
+  const withoutImages = html.replace(/<img\b[^>]*>/gi, "");
+  const withLineBreaks = withoutImages.replace(/<br\s*\/?>/gi, "\n");
+  const container = document.createElement("div");
+  container.innerHTML = withLineBreaks;
+  return container.textContent ?? "";
+}
+
+function parseDeckId(value: unknown): number | null {
+  if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+    return value;
+  }
+  if (typeof value === "string" && /^\d+$/.test(value)) {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  }
+  return null;
+}
+
+async function getSqlJs() {
+  if (sqlJsPromise === null) {
+    sqlJsPromise = initSqlJs({
+      locateFile: () => sqlWasmUrl,
+    });
+  }
+  return sqlJsPromise;
+}
+
+export async function loadDeckApkgAsSession(deckZipFile: File): Promise<Session> {
   let zip: JSZip;
   try {
     zip = await JSZip.loadAsync(await deckZipFile.arrayBuffer());
   } catch {
-    throw new Error("ZIPの読み込みに失敗しました。ファイル形式を確認してください");
-  }
-  const questionFiles = new Map<number, string>();
-  const answerFiles = new Map<number, string>();
-
-  for (const name of Object.keys(zip.files)) {
-    const match = /^(q|a)_(\d+)\.png$/i.exec(name);
-    if (!match) {
-      continue;
-    }
-
-    const prefix = match[1].toLowerCase();
-    const index = Number.parseInt(match[2], 10);
-    if (Number.isNaN(index)) {
-      continue;
-    }
-
-    if (prefix === "q") {
-      questionFiles.set(index, name);
-      continue;
-    }
-
-    answerFiles.set(index, name);
+    throw new Error("APKGの読み込みに失敗しました。ファイル形式を確認してください");
   }
 
-  const sortedIndices = [...questionFiles.keys()]
-    .filter((index) => answerFiles.has(index))
-    .sort((a, b) => a - b);
+  const collectionFile = zip.file("collection.anki2");
+  const mediaFile = zip.file("media");
+  if (collectionFile == null || mediaFile == null) {
+    throw new Error("APKGに必要なデータが含まれていません");
+  }
+
+  const [collectionBinary, mediaText, SQL] = await Promise.all([
+    collectionFile.async("uint8array"),
+    mediaFile.async("text"),
+    getSqlJs(),
+  ]);
+  const mediaMap = JSON.parse(mediaText) as Record<string, string>;
+  const mediaIdByName = new Map<string, string>();
+  Object.entries(mediaMap).forEach(([mediaId, fileName]) => {
+    mediaIdByName.set(fileName, mediaId);
+  });
+
+  const db = new SQL.Database(collectionBinary);
   const cards: SessionCard[] = [];
+  let parsedDeckId: number | null = null;
+  let parsedDeckName: string | null = null;
 
-  for (const index of sortedIndices) {
-    const questionName = questionFiles.get(index);
-    const answerName = answerFiles.get(index);
-    if (!questionName || !answerName) {
-      continue;
+  try {
+    const didRow = db.exec("SELECT did FROM cards ORDER BY id LIMIT 1");
+    parsedDeckId = parseDeckId(didRow[0]?.values?.[0]?.[0] ?? null);
+
+    const colRow = db.exec("SELECT decks FROM col LIMIT 1");
+    if (colRow.length > 0 && colRow[0].values.length > 0) {
+      const decks = JSON.parse(String(colRow[0].values[0][0])) as Record<string, { name?: string }>;
+      if (parsedDeckId !== null) {
+        parsedDeckName = decks[String(parsedDeckId)]?.name ?? null;
+      }
+      if (parsedDeckName == null) {
+        parsedDeckName = Object.values(decks)[0]?.name ?? null;
+      }
     }
-    const questionFile = zip.file(questionName);
-    const answerFile = zip.file(answerName);
-    if (questionFile == null || answerFile == null) {
-      continue;
+
+    const rows = db.exec(
+      "SELECT cards.id, notes.flds FROM cards JOIN notes ON notes.id = cards.nid ORDER BY cards.due ASC, cards.id ASC"
+    );
+    if (rows.length > 0) {
+      for (const [rowIndex, row] of rows[0].values.entries()) {
+        const [, fieldsRaw] = row;
+        const [frontRaw, backRaw] = String(fieldsRaw).split(FIELD_SEPARATOR);
+        const front = frontRaw ?? "";
+        const back = backRaw ?? "";
+        const questionText = htmlToText(front);
+        const answerText = htmlToText(back);
+        const questionImageName = extractImageNameFromHtml(front);
+        const answerImageName = extractImageNameFromHtml(back);
+
+        const questionMediaId = questionImageName ? mediaIdByName.get(questionImageName) : undefined;
+        const answerMediaId = answerImageName ? mediaIdByName.get(answerImageName) : undefined;
+        const questionBlobPromise = questionMediaId ? zip.file(questionMediaId)?.async("blob") : undefined;
+        const answerBlobPromise = answerMediaId ? zip.file(answerMediaId)?.async("blob") : undefined;
+        const [questionBlob, answerBlob] = await Promise.all([
+          questionBlobPromise ?? Promise.resolve(undefined),
+          answerBlobPromise ?? Promise.resolve(undefined),
+        ]);
+
+        const [questionImageSrc, answerImageSrc] = await Promise.all([
+          questionBlob ? blobToDataUrl(questionBlob) : Promise.resolve(null),
+          answerBlob ? blobToDataUrl(answerBlob) : Promise.resolve(null),
+        ]);
+        const [questionSize, answerSize] = await Promise.all([
+          questionImageSrc ? readImageSize(questionImageSrc) : Promise.resolve(null),
+          answerImageSrc ? readImageSize(answerImageSrc) : Promise.resolve(null),
+        ]);
+
+        if (questionImageSrc === null && questionText.trim().length === 0) {
+          continue;
+        }
+        if (answerImageSrc === null && answerText.trim().length === 0) {
+          continue;
+        }
+
+        cards.push({
+          id: `${APKG_CARD_ID_PREFIX}${String(rowIndex + 1).padStart(APKG_CARD_ID_PADDING, "0")}`,
+          questionRect: questionSize ? { x: 0, y: 0, w: questionSize.width, h: questionSize.height } : null,
+          answerRect: answerSize ? { x: 0, y: 0, w: answerSize.width, h: answerSize.height } : null,
+          questionImageSrc,
+          questionText,
+          answerImageSrc,
+          answerText,
+        });
+      }
     }
-
-    const [questionBlob, answerBlob] = await Promise.all([
-      questionFile.async("blob"),
-      answerFile.async("blob"),
-    ]);
-    const [questionImageSrc, answerImageSrc] = await Promise.all([
-      blobToDataUrl(questionBlob),
-      blobToDataUrl(answerBlob),
-    ]);
-    const [questionSize, answerSize] = await Promise.all([
-      readImageSize(questionImageSrc),
-      readImageSize(answerImageSrc),
-    ]);
-
-    cards.push({
-      id: `${ZIP_CARD_ID_PREFIX}${String(index).padStart(ZIP_CARD_ID_PADDING, "0")}`,
-      questionRect: { x: 0, y: 0, w: questionSize.width, h: questionSize.height },
-      answerRect: { x: 0, y: 0, w: answerSize.width, h: answerSize.height },
-      questionImageSrc,
-      questionText: "",
-      answerImageSrc,
-      answerText: "",
-    });
+  } finally {
+    db.close();
   }
 
   if (cards.length === 0) {
-    throw new Error(`${deckZipFile.name} からカード画像を読み込めませんでした`);
+    throw new Error(`${deckZipFile.name} からカードを読み込めませんでした`);
   }
 
   return {
-    deckName: toDeckName(deckZipFile.name),
+    deckName: parsedDeckName ?? toDeckName(deckZipFile.name),
+    deckId: parsedDeckId ?? undefined,
     cards,
   };
 }
