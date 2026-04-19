@@ -141,8 +141,8 @@ function App() {
       setZipError(null);
     } catch (error) {
       const detail =
-        error instanceof Error ? error.message : "ZIP生成中に不明なエラーが発生しました";
-      setZipError(`ZIPの保存に失敗しました: ${detail}`);
+        error instanceof Error ? error.message : "APKG生成中に不明なエラーが発生しました";
+      setZipError(`APKGの保存に失敗しました: ${detail}`);
     }
   }, [cards, deckName]);
 
@@ -210,7 +210,7 @@ function App() {
           <input type="file" accept=".zip,application/zip" onChange={handleLoadDeckZip} />
         </label>
         <button className="btn btn--secondary" onClick={handleSaveZip} disabled={cards.length === 0}>
-          ZIPを保存
+          APKGを保存
         </button>
       </div>
       {sessionError && <p className="error-text">{sessionError}</p>}
