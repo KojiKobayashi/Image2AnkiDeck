@@ -130,7 +130,7 @@ function createDeckIdFromUuid(): number {
   if (webCrypto && typeof webCrypto.randomUUID === "function") {
     const uuidHex = webCrypto.randomUUID().replaceAll("-", "");
     const safeRange = BigInt(Number.MAX_SAFE_INTEGER - 1);
-    return Number((BigInt(`0x${uuidHex}`) % safeRange) + 1n);
+    return Number(BigInt(`0x${uuidHex}`) % safeRange);
   }
   return Date.now();
 }
@@ -264,21 +264,22 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
       Object.values(models).find((model) => model.name === "Basic") ?? Object.values(models)[0];
     const modelId = Number(basicModel?.id ?? Object.keys(models)[0]);
 
-    const templateDeckEntry = decks["1"] ?? Object.values(decks)[0];
+    const templateDeckKey = decks["1"] ? "1" : Object.keys(decks)[0];
+    const templateDeckEntry = templateDeckKey ? decks[templateDeckKey] : undefined;
     if (templateDeckEntry == null) {
       throw new Error("template collection のデッキ情報が不正です");
     }
+    const deckNameForAnki = deckName.trim() || "Default";
     const deckId = createDeckIdFromUuid();
     const updatedDeckEntry = {
       ...templateDeckEntry,
       id: deckId,
-      name: sanitizeDeckNameForAnki(deckName),
+      name: sanitizeDeckNameForAnki(deckNameForAnki),
       mod: nowSec,
     };
     const updatedDecks = { ...decks };
-    const templateDeckIdKey = Object.keys(updatedDecks).find((key) => updatedDecks[key] === templateDeckEntry);
-    if (templateDeckIdKey !== undefined) {
-      delete updatedDecks[templateDeckIdKey];
+    if (templateDeckKey) {
+      delete updatedDecks[templateDeckKey];
     }
     updatedDecks[String(deckId)] = updatedDeckEntry;
 
