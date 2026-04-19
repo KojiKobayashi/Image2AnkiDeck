@@ -128,7 +128,7 @@ function createDeckPrefix(): string {
 function createDeckIdFromUuid(): number {
   const webCrypto = globalThis.crypto;
   if (webCrypto && typeof webCrypto.randomUUID === "function") {
-    const hex = webCrypto.randomUUID().replaceAll("-", "").slice(0, 12);
+    const hex = webCrypto.randomUUID().replaceAll("-", "").slice(0, 13);
     return Number.parseInt(hex, 16);
   }
   return Date.now();
@@ -274,7 +274,10 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
       name: sanitizeDeckNameForAnki(deckName),
       mod: nowSec,
     };
-    const updatedDecks = { [String(deckId)]: updatedDeckEntry };
+    const updatedDecks = { ...decks };
+    const templateDeckIdKey = String(templateDeckEntry.id ?? "1");
+    delete updatedDecks[templateDeckIdKey];
+    updatedDecks[String(deckId)] = updatedDeckEntry;
 
     db.run("UPDATE col SET mod = ?, scm = ?, decks = ? WHERE id = ?", [
       nowSec,
