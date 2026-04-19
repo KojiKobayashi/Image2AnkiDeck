@@ -6,12 +6,15 @@
 import type { Card } from "../types";
 
 const DEFAULT_PADDING = 3;
+const DEFAULT_DECK_UUID = "deck";
 
 export type CsvExportOptions = {
   /** 連番の開始番号（既定: 1） */
   startIndex?: number;
   /** ゼロパディング桁数（既定: 3） */
   padding?: number;
+  /** 画像ファイル名用のデッキUUID（既定: "deck"） */
+  deckUuid?: string;
 };
 
 function escapeCsvField(value: string): string {
@@ -37,18 +40,19 @@ function toTextHtml(text: string): string {
   return escapeHtml(text).replaceAll("\n", "<br>");
 }
 
-function toMediaFileName(prefix: "q" | "a", index: number, padding: number): string {
-  return `${prefix}_${String(index).padStart(padding, "0")}.png`;
+function toMediaFileName(prefix: "q" | "a", index: number, padding: number, deckUuid: string): string {
+  return `${deckUuid}_${prefix}_${String(index).padStart(padding, "0")}.png`;
 }
 
 /**
  * カード配列からAnkiインポート用CSV文字列を生成する。
  * 出力形式:
- * "<img src=""q_001.png"">","<img src=""a_001.png"">"
+ * "<img src=""{deckUuid}_q_001.png"">","<img src=""{deckUuid}_a_001.png"">"
  */
 export function createDeckCsv(cards: Card[], options: CsvExportOptions = {}): string {
   const startIndex = options.startIndex ?? 1;
   const padding = options.padding ?? DEFAULT_PADDING;
+  const deckUuid = options.deckUuid?.trim() || DEFAULT_DECK_UUID;
 
   if (!Number.isInteger(startIndex) || startIndex < 1) {
     throw new Error(`startIndex (${startIndex}) は 1 以上の整数である必要があります`);
@@ -77,13 +81,13 @@ export function createDeckCsv(cards: Card[], options: CsvExportOptions = {}): st
 
     const sequence = startIndex + offset;
     const front = [
-      hasQuestionImage ? toImageTag(toMediaFileName("q", sequence, padding)) : null,
+      hasQuestionImage ? toImageTag(toMediaFileName("q", sequence, padding, deckUuid)) : null,
       hasQuestionText ? toTextHtml(card.questionText) : null,
     ]
       .filter((value): value is string => value !== null)
       .join("<br>");
     const back = [
-      hasAnswerImage ? toImageTag(toMediaFileName("a", sequence, padding)) : null,
+      hasAnswerImage ? toImageTag(toMediaFileName("a", sequence, padding, deckUuid)) : null,
       hasAnswerText ? toTextHtml(card.answerText) : null,
     ]
       .filter((value): value is string => value !== null)

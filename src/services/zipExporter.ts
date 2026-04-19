@@ -8,6 +8,7 @@ import type { Card } from "../types";
 import { createDeckCsv } from "./csvExporter";
 
 const DEFAULT_PADDING = 3;
+const DEFAULT_DECK_UUID = "deck";
 const URL_REVOCATION_DELAY_MS = 300;
 const MAX_DOWNLOAD_NAME_LENGTH = 100;
 const DEFAULT_DECK_NAME = "deck";
@@ -41,10 +42,12 @@ export type ZipExportOptions = {
   startIndex?: number;
   /** ゼロパディング桁数（既定: 3） */
   padding?: number;
+  /** 画像ファイル名用のデッキUUID（既定: "deck"） */
+  deckUuid?: string;
 };
 
-function toMediaFileName(prefix: "q" | "a", index: number, padding: number): string {
-  return `${prefix}_${String(index).padStart(padding, "0")}.png`;
+function toMediaFileName(prefix: "q" | "a", index: number, padding: number, deckUuid: string): string {
+  return `${deckUuid}_${prefix}_${String(index).padStart(padding, "0")}.png`;
 }
 
 async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
@@ -83,15 +86,16 @@ export function sanitizeFileBaseName(name: string): string {
 export async function createDeckZip(cards: Card[], options: ZipExportOptions = {}): Promise<Blob> {
   const startIndex = options.startIndex ?? 1;
   const padding = options.padding ?? DEFAULT_PADDING;
+  const deckUuid = options.deckUuid?.trim() || DEFAULT_DECK_UUID;
   const zip = new JSZip();
 
-  zip.file("deck.csv", createDeckCsv(cards, { startIndex, padding }));
+  zip.file("deck.csv", createDeckCsv(cards, { startIndex, padding, deckUuid }));
 
   await Promise.all(
     cards.map(async (card, offset) => {
       const sequence = startIndex + offset;
-      const questionFileName = toMediaFileName("q", sequence, padding);
-      const answerFileName = toMediaFileName("a", sequence, padding);
+      const questionFileName = toMediaFileName("q", sequence, padding, deckUuid);
+      const answerFileName = toMediaFileName("a", sequence, padding, deckUuid);
       const tasks: Array<Promise<void>> = [];
 
       if (card.questionImage) {
@@ -117,8 +121,8 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
   return zip.generateAsync({ type: "blob" });
 }
 
-export async function downloadDeckZip(cards: Card[], deckName: string): Promise<void> {
-  const zipBlob = await createDeckZip(cards);
+export async function downloadDeckZip(cards: Card[], deckName: string, deckUuid: string): Promise<void> {
+  const zipBlob = await createDeckZip(cards, { deckUuid });
   const url = URL.createObjectURL(zipBlob);
   const anchor = document.createElement("a");
   anchor.href = url;

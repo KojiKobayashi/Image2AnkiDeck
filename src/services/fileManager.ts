@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import type { Session, SessionCard } from "../types";
+import { generateId } from "../utils/idGenerator";
 
 const DEFAULT_DECK_NAME = "deck";
 const ZIP_CARD_ID_PREFIX = "zip-";
@@ -39,18 +40,26 @@ function extractPaddingFromCsvText(text: string): number {
 
 function parseCardImageFilename(filename: string): {
   matched: boolean;
+  deckUuid: string | null;
+  prefix: "q" | "a" | "";
   index: number;
   padding: number;
 } {
-  const match = /^(?:q|a)_(\d+)\.png$/i.exec(filename);
+  const match = /^(?:(.+?)_)?([qa])_(\d+)\.png$/i.exec(filename);
   if (!match) {
-    return { matched: false, index: 0, padding: 0 };
+    return { matched: false, deckUuid: null, prefix: "", index: 0, padding: 0 };
   }
 
-  const parsed = Number.parseInt(match[1], 10);
+  const parsed = Number.parseInt(match[3], 10);
   return Number.isNaN(parsed)
-    ? { matched: false, index: 0, padding: 0 }
-    : { matched: true, index: parsed, padding: match[1].length };
+    ? { matched: false, deckUuid: null, prefix: "", index: 0, padding: 0 }
+    : {
+        matched: true,
+        deckUuid: match[1] ?? null,
+        prefix: match[2].toLowerCase() as "q" | "a",
+        index: parsed,
+        padding: match[3].length,
+      };
 }
 
 function isValidCardNumberPadding(padding: number): boolean {
@@ -65,10 +74,10 @@ function escapeCsvField(value: string): string {
   return `"${value.replace(/"/g, `""`)}"`;
 }
 
-function buildCsvRow(cardNumber: number, padding: number): string {
+function buildCsvRow(deckUuid: string, cardNumber: number, padding: number): string {
   const n = formatCardNumber(cardNumber, padding);
-  const front = escapeCsvField(`<img src="q_${n}.png">`);
-  const back = escapeCsvField(`<img src="a_${n}.png">`);
+  const front = escapeCsvField(`<img src="${deckUuid}_q_${n}.png">`);
+  const back = escapeCsvField(`<img src="${deckUuid}_a_${n}.png">`);
   return `${front},${back}`;
 }
 
@@ -125,17 +134,16 @@ export async function loadDeckZipAsSession(deckZipFile: File): Promise<Session> 
   }
   const questionFiles = new Map<number, string>();
   const answerFiles = new Map<number, string>();
+  let deckUuid: string | null = null;
 
   for (const name of Object.keys(zip.files)) {
-    const match = /^(q|a)_(\d+)\.png$/i.exec(name);
-    if (!match) {
+    const { matched, deckUuid: parsedDeckUuid, prefix, index } = parseCardImageFilename(name);
+    if (!matched) {
       continue;
     }
 
-    const prefix = match[1].toLowerCase();
-    const index = Number.parseInt(match[2], 10);
-    if (Number.isNaN(index)) {
-      continue;
+    if (deckUuid === null && parsedDeckUuid) {
+      deckUuid = parsedDeckUuid;
     }
 
     if (prefix === "q") {
@@ -193,6 +201,7 @@ export async function loadDeckZipAsSession(deckZipFile: File): Promise<Session> 
 
   return {
     deckName: toDeckName(deckZipFile.name),
+    deckUuid: deckUuid ?? generateId(),
     cards,
   };
 }
@@ -208,24 +217,29 @@ export async function appendCardsToExistingDeck(
 
   let maxIndex = extractMaxIndexFromCsvText(csvText);
   let detectedPadding = extractPaddingFromCsvText(csvText);
+  let deckUuid: string | null = null;
 
   Object.keys(zip.files).forEach((filename) => {
-    const { matched, index, padding } = parseCardImageFilename(filename);
+    const { matched, deckUuid: parsedDeckUuid, index, padding } = parseCardImageFilename(filename);
     if (!matched) {
       return;
+    }
+    if (deckUuid === null && parsedDeckUuid) {
+      deckUuid = parsedDeckUuid;
     }
     maxIndex = Math.max(maxIndex, index);
     detectedPadding = Math.max(detectedPadding, padding);
   });
 
   const cardNumberPadding = resolveCardNumberPadding(detectedPadding);
+  const resolvedDeckUuid = deckUuid ?? generateId();
 
   for (const card of newCards) {
     maxIndex += 1;
     const n = formatCardNumber(maxIndex, cardNumberPadding);
-    zip.file(`q_${n}.png`, await card.questionImage.arrayBuffer());
-    zip.file(`a_${n}.png`, await card.answerImage.arrayBuffer());
-    csvLines.push(buildCsvRow(maxIndex, cardNumberPadding));
+    zip.file(`${resolvedDeckUuid}_q_${n}.png`, await card.questionImage.arrayBuffer());
+    zip.file(`${resolvedDeckUuid}_a_${n}.png`, await card.answerImage.arrayBuffer());
+    csvLines.push(buildCsvRow(resolvedDeckUuid, maxIndex, cardNumberPadding));
   }
 
   zip.file("deck.csv", `${csvLines.join("\n")}\n`);
