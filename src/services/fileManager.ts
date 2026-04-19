@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import type { Session, SessionCard } from "../types";
+import { normalizeDeckUuid } from "../utils/deckUuid";
 import { generateId } from "../utils/idGenerator";
 
 const DEFAULT_DECK_NAME = "deck";
@@ -45,7 +46,7 @@ function parseCardImageFilename(filename: string): {
   index: number;
   padding: number;
 } {
-  const match = /^(?:(.+?)_)?([qa])_(\d+)\.png$/i.exec(filename);
+  const match = /^(?:([A-Za-z0-9-]+)_)?([QqAa])_(\d+)\.png$/.exec(filename);
   if (!match) {
     return { matched: false, deckUuid: null, prefix: "", index: 0, padding: 0 };
   }
@@ -75,9 +76,10 @@ function escapeCsvField(value: string): string {
 }
 
 function buildCsvRow(deckUuid: string, cardNumber: number, padding: number): string {
+  const safeDeckUuid = normalizeDeckUuid(deckUuid);
   const n = formatCardNumber(cardNumber, padding);
-  const front = escapeCsvField(`<img src="${deckUuid}_q_${n}.png">`);
-  const back = escapeCsvField(`<img src="${deckUuid}_a_${n}.png">`);
+  const front = escapeCsvField(`<img src="${safeDeckUuid}_q_${n}.png">`);
+  const back = escapeCsvField(`<img src="${safeDeckUuid}_a_${n}.png">`);
   return `${front},${back}`;
 }
 
@@ -201,7 +203,7 @@ export async function loadDeckZipAsSession(deckZipFile: File): Promise<Session> 
 
   return {
     deckName: toDeckName(deckZipFile.name),
-    deckUuid: deckUuid ?? generateId(),
+    deckUuid: normalizeDeckUuid(deckUuid ?? generateId()),
     cards,
   };
 }
@@ -232,7 +234,7 @@ export async function appendCardsToExistingDeck(
   });
 
   const cardNumberPadding = resolveCardNumberPadding(detectedPadding);
-  const resolvedDeckUuid = deckUuid ?? generateId();
+  const resolvedDeckUuid = normalizeDeckUuid(deckUuid ?? generateId());
 
   for (const card of newCards) {
     maxIndex += 1;

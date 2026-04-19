@@ -42,7 +42,7 @@ function assertValidSession(value: unknown): asserts value is Session {
   if (typeof value.deckName !== "string") {
     throw new Error("deckName が不正です");
   }
-  if ("deckUuid" in value && value.deckUuid !== undefined && typeof value.deckUuid !== "string") {
+  if ("deckUuid" in value && typeof value.deckUuid !== "string") {
     throw new Error("deckUuid が不正です");
   }
   if (!Array.isArray(value.cards)) {

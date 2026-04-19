@@ -4,9 +4,9 @@
  */
 
 import type { Card } from "../types";
+import { normalizeDeckUuid } from "../utils/deckUuid";
 
 const DEFAULT_PADDING = 3;
-const DEFAULT_DECK_UUID = "deck";
 
 export type CsvExportOptions = {
   /** 連番の開始番号（既定: 1） */
@@ -52,7 +52,7 @@ function toMediaFileName(prefix: "q" | "a", index: number, padding: number, deck
 export function createDeckCsv(cards: Card[], options: CsvExportOptions = {}): string {
   const startIndex = options.startIndex ?? 1;
   const padding = options.padding ?? DEFAULT_PADDING;
-  const deckUuid = options.deckUuid?.trim() || DEFAULT_DECK_UUID;
+  const deckUuid = normalizeDeckUuid(options.deckUuid);
 
   if (!Number.isInteger(startIndex) || startIndex < 1) {
     throw new Error(`startIndex (${startIndex}) は 1 以上の整数である必要があります`);

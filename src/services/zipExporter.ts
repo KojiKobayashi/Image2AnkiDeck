@@ -5,10 +5,10 @@
 
 import JSZip from "jszip";
 import type { Card } from "../types";
+import { normalizeDeckUuid } from "../utils/deckUuid";
 import { createDeckCsv } from "./csvExporter";
 
 const DEFAULT_PADDING = 3;
-const DEFAULT_DECK_UUID = "deck";
 const URL_REVOCATION_DELAY_MS = 300;
 const MAX_DOWNLOAD_NAME_LENGTH = 100;
 const DEFAULT_DECK_NAME = "deck";
@@ -86,7 +86,7 @@ export function sanitizeFileBaseName(name: string): string {
 export async function createDeckZip(cards: Card[], options: ZipExportOptions = {}): Promise<Blob> {
   const startIndex = options.startIndex ?? 1;
   const padding = options.padding ?? DEFAULT_PADDING;
-  const deckUuid = options.deckUuid?.trim() || DEFAULT_DECK_UUID;
+  const deckUuid = normalizeDeckUuid(options.deckUuid);
   const zip = new JSZip();
 
   zip.file("deck.csv", createDeckCsv(cards, { startIndex, padding, deckUuid }));
