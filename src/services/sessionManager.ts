@@ -4,7 +4,6 @@
  */
 
 import type { Session } from "../types";
-import { generateId } from "../utils/idGenerator";
 
 const MAX_RECT_SIDE_LENGTH = 50000;
 
@@ -42,8 +41,11 @@ function assertValidSession(value: unknown): asserts value is Session {
   if (typeof value.deckName !== "string") {
     throw new Error("deckName が不正です");
   }
-  if ("deckUuid" in value && typeof value.deckUuid !== "string") {
-    throw new Error("deckUuid が不正です");
+  if (
+    value.deckId !== undefined &&
+    (!isFiniteNumber(value.deckId) || !Number.isInteger(value.deckId) || value.deckId <= 0)
+  ) {
+    throw new Error("deckId が不正です");
   }
   if (!Array.isArray(value.cards)) {
     throw new Error("cards が不正です");
@@ -117,9 +119,5 @@ export async function loadSession(file: File): Promise<Session> {
     throw new Error("JSONの構文が不正です");
   }
   assertValidSession(parsed);
-  const deckUuid = parsed.deckUuid?.trim() ? parsed.deckUuid : generateId();
-  return {
-    ...parsed,
-    deckUuid,
-  };
+  return parsed;
 }
