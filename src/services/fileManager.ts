@@ -51,7 +51,7 @@ function parseCardImageFilename(filename: string): {
   index: number;
   padding: number;
 } {
-  const match = /^(?:([A-Za-z0-9-]+)_)?([QqAa])_(\d+)\.png$/.exec(filename);
+  const match = /^(?:([A-Za-z0-9-]+)_)?([qa])_(\d+)\.png$/i.exec(filename);
   if (!match) {
     return { matched: false, deckPrefix: null, prefix: "", index: 0, padding: 0 };
   }
