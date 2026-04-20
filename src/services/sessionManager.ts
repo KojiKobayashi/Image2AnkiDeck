@@ -41,6 +41,12 @@ function assertValidSession(value: unknown): asserts value is Session {
   if (typeof value.deckName !== "string") {
     throw new Error("deckName が不正です");
   }
+  if (
+    value.deckId !== undefined &&
+    (!isFiniteNumber(value.deckId) || !Number.isInteger(value.deckId) || value.deckId <= 0)
+  ) {
+    throw new Error("deckId が不正です");
+  }
   if (!Array.isArray(value.cards)) {
     throw new Error("cards が不正です");
   }
