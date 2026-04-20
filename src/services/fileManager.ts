@@ -2,6 +2,8 @@ import JSZip from "jszip";
 import initSqlJs from "sql.js";
 import sqlWasmUrl from "sql.js/dist/sql-wasm.wasm?url";
 import type { Session, SessionCard } from "../types";
+import { normalizeDeckUuid } from "../utils/deckUuid";
+import { generateId } from "../utils/idGenerator";
 
 const DEFAULT_DECK_NAME = "deck";
 const APKG_CARD_ID_PREFIX = "apkg-";
@@ -25,7 +27,7 @@ type ImageSize = {
 
 function extractMaxIndexFromCsvText(text: string): number {
   let max = 0;
-  for (const match of text.matchAll(/(?:q|a)_(\d+)\.png/g)) {
+  for (const match of text.matchAll(/(?:[A-Za-z0-9-]+_)?(?:q|a)_(\d+)\.png/g)) {
     const parsed = Number.parseInt(match[1], 10);
     if (!Number.isNaN(parsed)) {
       max = Math.max(max, parsed);
@@ -36,7 +38,7 @@ function extractMaxIndexFromCsvText(text: string): number {
 
 function extractPaddingFromCsvText(text: string): number {
   let maxPadding = 0;
-  for (const match of text.matchAll(/(?:q|a)_(\d+)\.png/g)) {
+  for (const match of text.matchAll(/(?:[A-Za-z0-9-]+_)?(?:q|a)_(\d+)\.png/g)) {
     maxPadding = Math.max(maxPadding, match[1].length);
   }
   return maxPadding;
@@ -44,18 +46,26 @@ function extractPaddingFromCsvText(text: string): number {
 
 function parseCardImageFilename(filename: string): {
   matched: boolean;
+  deckPrefix: string | null;
+  prefix: "q" | "a" | "";
   index: number;
   padding: number;
 } {
-  const match = /^(?:q|a)_(\d+)\.png$/i.exec(filename);
+  const match = /^(?:([A-Za-z0-9-]+)_)?([QqAa])_(\d+)\.png$/.exec(filename);
   if (!match) {
-    return { matched: false, index: 0, padding: 0 };
+    return { matched: false, deckPrefix: null, prefix: "", index: 0, padding: 0 };
   }
 
-  const parsed = Number.parseInt(match[1], 10);
+  const parsed = Number.parseInt(match[3], 10);
   return Number.isNaN(parsed)
-    ? { matched: false, index: 0, padding: 0 }
-    : { matched: true, index: parsed, padding: match[1].length };
+    ? { matched: false, deckPrefix: null, prefix: "", index: 0, padding: 0 }
+    : {
+        matched: true,
+        deckPrefix: match[1] ?? null,
+        prefix: match[2].toLowerCase() as "q" | "a",
+        index: parsed,
+        padding: match[3].length,
+      };
 }
 
 function isValidCardNumberPadding(padding: number): boolean {
@@ -70,10 +80,10 @@ function escapeCsvField(value: string): string {
   return `"${value.replace(/"/g, `""`)}"`;
 }
 
-function buildCsvRow(cardNumber: number, padding: number): string {
+function buildCsvRow(deckPrefix: string, cardNumber: number, padding: number): string {
   const n = formatCardNumber(cardNumber, padding);
-  const front = escapeCsvField(`<img src="q_${n}.png">`);
-  const back = escapeCsvField(`<img src="a_${n}.png">`);
+  const front = escapeCsvField(`<img src="${deckPrefix}_q_${n}.png">`);
+  const back = escapeCsvField(`<img src="${deckPrefix}_a_${n}.png">`);
   return `${front},${back}`;
 }
 
@@ -289,24 +299,29 @@ export async function appendCardsToExistingDeck(
 
   let maxIndex = extractMaxIndexFromCsvText(csvText);
   let detectedPadding = extractPaddingFromCsvText(csvText);
+  let deckPrefix: string | null = null;
 
   Object.keys(zip.files).forEach((filename) => {
-    const { matched, index, padding } = parseCardImageFilename(filename);
+    const { matched, deckPrefix: parsedDeckPrefix, index, padding } = parseCardImageFilename(filename);
     if (!matched) {
       return;
+    }
+    if (deckPrefix === null && parsedDeckPrefix) {
+      deckPrefix = parsedDeckPrefix;
     }
     maxIndex = Math.max(maxIndex, index);
     detectedPadding = Math.max(detectedPadding, padding);
   });
 
   const cardNumberPadding = resolveCardNumberPadding(detectedPadding);
+  const resolvedDeckPrefix = normalizeDeckUuid(deckPrefix ?? generateId());
 
   for (const card of newCards) {
     maxIndex += 1;
     const n = formatCardNumber(maxIndex, cardNumberPadding);
-    zip.file(`q_${n}.png`, await card.questionImage.arrayBuffer());
-    zip.file(`a_${n}.png`, await card.answerImage.arrayBuffer());
-    csvLines.push(buildCsvRow(maxIndex, cardNumberPadding));
+    zip.file(`${resolvedDeckPrefix}_q_${n}.png`, await card.questionImage.arrayBuffer());
+    zip.file(`${resolvedDeckPrefix}_a_${n}.png`, await card.answerImage.arrayBuffer());
+    csvLines.push(buildCsvRow(resolvedDeckPrefix, maxIndex, cardNumberPadding));
   }
 
   zip.file("deck.csv", `${csvLines.join("\n")}\n`);
