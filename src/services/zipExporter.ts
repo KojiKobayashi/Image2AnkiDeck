@@ -388,7 +388,7 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
     templateZip.file("collection.anki2", updatedCollection);
     templateZip.file("media", JSON.stringify(mediaMap));
 
-    return templateZip.generateAsync({ type: "blob" });
+    return templateZip.generateAsync({ type: "blob", mimeType: "application/octet-stream" });
   } finally {
     db.close();
   }
@@ -396,7 +396,8 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
 
 export async function downloadDeckZip(cards: Card[], deckName: string, deckId?: number): Promise<void> {
   const apkgBlob = await createDeckZip(cards, { deckName, deckId });
-  const url = URL.createObjectURL(apkgBlob);
+  const safeBlob = new Blob([apkgBlob], { type: "application/octet-stream" });
+  const url = URL.createObjectURL(safeBlob);
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = `${sanitizeFileBaseName(deckName)}.apkg`;
