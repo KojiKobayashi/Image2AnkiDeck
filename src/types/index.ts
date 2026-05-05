@@ -50,6 +50,8 @@ export type CanvasSelectorProps = {
   width?: number;
   /** Canvas高さ（省略時は画像の自然な高さ） */
   height?: number;
+  /** 画像読み込み完了時のコールバック（Canvasのピクセル幅・高さを受け取る） */
+  onImageLoad?: (width: number, height: number) => void;
 };
 
 /** useSelectionフックの戻り値 */
