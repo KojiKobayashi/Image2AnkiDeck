@@ -271,7 +271,12 @@ function App() {
 
   return (
     <div className="app-container">
-      <h1>Image2AnkiDeck</h1>
+      <header className="app-header">
+        <h1 className="app-header__title">SnapDeck</h1>
+        <p className="app-header__description">
+          画像から範囲を選択するだけで、Anki フラッシュカードデッキを作成できます。
+        </p>
+      </header>
 
       <div className="field-row">
         <label htmlFor="deck-name" className="field-label">
