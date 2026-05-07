@@ -21,9 +21,23 @@ body {
   gap: 1.5rem;
 }
 
-h1 {
-  font-size: 1.6rem;
-  font-weight: 700;
+/* ---- アプリヘッダー ---- */
+.app-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.app-header__title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #0056b3;
+}
+
+.app-header__description {
+  font-size: 0.95rem;
+  color: #555;
 }
 
 /* ---- デッキ名フィールド ---- */
