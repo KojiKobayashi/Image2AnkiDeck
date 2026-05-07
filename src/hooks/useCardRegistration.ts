@@ -32,6 +32,8 @@ export type UseCardRegistrationReturn = {
   restoreFromSession: (sessionCards: SessionCard[]) => Promise<void>;
   /** カードを削除する */
   removeCard: (id: string) => void;
+  /** 解答登録待ちの問題データ（解答ステップ中に有効） */
+  pendingQuestion: { imageSrc: string | null; rect: Rect | null; text: string } | null;
 };
 
 const hasText = (value: string): boolean => value.trim().length > 0;
@@ -176,5 +178,6 @@ export function useCardRegistration(): UseCardRegistrationReturn {
     registerAnswer,
     restoreFromSession,
     removeCard,
+    pendingQuestion,
   };
 }

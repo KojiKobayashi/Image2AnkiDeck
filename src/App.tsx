@@ -8,6 +8,7 @@ import { useCallback, useState } from "react";
 import { CanvasSelector } from "./components/CanvasSelector";
 import { PreviewList } from "./components/PreviewList";
 import { useCardRegistration } from "./hooks/useCardRegistration";
+import { cropImage } from "./services/imageCropper";
 import { loadDeckApkgAsSession } from "./services/fileManager";
 import { downloadSession, loadSession } from "./services/sessionManager";
 import { downloadDeckZip, sanitizeFileBaseName } from "./services/zipExporter";
@@ -41,6 +42,16 @@ function App() {
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [zipError, setZipError] = useState<string | null>(null);
 
+  // 画像全体選択用の寸法・チェックボックス状態
+  const [questionImageDims, setQuestionImageDims] = useState<{ width: number; height: number } | null>(null);
+  const [answerImageDims, setAnswerImageDims] = useState<{ width: number; height: number } | null>(null);
+  const [questionSelectAll, setQuestionSelectAll] = useState(false);
+  const [answerSelectAll, setAnswerSelectAll] = useState(false);
+
+  // 問題プレビュー（解答ステップ用）
+  const [questionPreviewImage, setQuestionPreviewImage] = useState<string | null>(null);
+  const [questionPreviewText, setQuestionPreviewText] = useState<string>("");
+
   const { step, cards, sessionCards, registerQuestion, registerAnswer, restoreFromSession, removeCard } =
     useCardRegistration();
 
@@ -53,6 +64,8 @@ function App() {
         const dataUrl = await readFileAsDataUrl(file);
         setQuestionImageSrc(dataUrl);
         setQuestionSelection(null);
+        setQuestionImageDims(null);
+        setQuestionSelectAll(false);
       } catch (error) {
         const detail = error instanceof Error ? error.message : "不明なエラー";
         setSessionError(`問題画像の読み込みに失敗しました: ${detail}`);
@@ -69,6 +82,8 @@ function App() {
         const dataUrl = await readFileAsDataUrl(file);
         setAnswerImageSrc(dataUrl);
         setAnswerSelection(null);
+        setAnswerImageDims(null);
+        setAnswerSelectAll(false);
       } catch (error) {
         const detail = error instanceof Error ? error.message : "不明なエラー";
         setSessionError(`解答画像の読み込みに失敗しました: ${detail}`);
@@ -78,12 +93,25 @@ function App() {
   );
 
   /** 問題領域を登録してステップを「解答選択」へ */
-  const handleRegisterQuestion = useCallback(() => {
+  const handleRegisterQuestion = useCallback(async () => {
     const hasQuestionImage = questionImageSrc !== null && questionSelection !== null;
     const hasQuestionText = questionText.trim().length > 0;
     if (!hasQuestionImage && !hasQuestionText) return;
     registerQuestion(questionImageSrc, questionSelection, questionText);
+
+    // 解答ステップ用のプレビューを生成
+    let previewImg: string | null = null;
+    if (questionImageSrc && questionSelection) {
+      try {
+        previewImg = await cropImage(questionImageSrc, questionSelection);
+      } catch {
+        previewImg = null;
+      }
+    }
+    setQuestionPreviewImage(previewImg);
+    setQuestionPreviewText(questionText);
     setQuestionSelection(null);
+    setQuestionSelectAll(false);
   }, [questionImageSrc, questionSelection, questionText, registerQuestion]);
 
   /** 解答領域を登録してカードを生成する */
@@ -96,11 +124,61 @@ function App() {
       setQuestionText("");
       setAnswerSelection(null);
       setAnswerText("");
+      setAnswerSelectAll(false);
+      setQuestionPreviewImage(null);
+      setQuestionPreviewText("");
     } catch (error) {
       const detail = error instanceof Error ? error.message : "不明なエラー";
       setSessionError(`解答の登録に失敗しました: ${detail}`);
     }
   }, [answerImageSrc, answerSelection, answerText, registerAnswer]);
+
+  // 画像読み込み完了時に寸法を保存
+  const handleQuestionImageLoad = useCallback((width: number, height: number) => {
+    setQuestionImageDims({ width, height });
+  }, []);
+
+  const handleAnswerImageLoad = useCallback((width: number, height: number) => {
+    setAnswerImageDims({ width, height });
+  }, []);
+
+  // 「画像全体を選択」チェックボックス
+  const handleQuestionSelectAllChange = useCallback(
+    (checked: boolean) => {
+      setQuestionSelectAll(checked);
+      if (checked && questionImageDims) {
+        const rect: Rect = { x: 0, y: 0, width: questionImageDims.width, height: questionImageDims.height };
+        setQuestionSelection(rect);
+      } else {
+        setQuestionSelection(null);
+      }
+    },
+    [questionImageDims]
+  );
+
+  const handleAnswerSelectAllChange = useCallback(
+    (checked: boolean) => {
+      setAnswerSelectAll(checked);
+      if (checked && answerImageDims) {
+        const rect: Rect = { x: 0, y: 0, width: answerImageDims.width, height: answerImageDims.height };
+        setAnswerSelection(rect);
+      } else {
+        setAnswerSelection(null);
+      }
+    },
+    [answerImageDims]
+  );
+
+  // 手動ドラッグ選択時はチェックボックスを解除
+  const handleQuestionSelect = useCallback((rect: Rect) => {
+    setQuestionSelection(rect);
+    setQuestionSelectAll(false);
+  }, []);
+
+  const handleAnswerSelect = useCallback((rect: Rect) => {
+    setAnswerSelection(rect);
+    setAnswerSelectAll(false);
+  }, []);
 
   const handleSaveSession = useCallback(() => {
     const session: Session = {
@@ -127,6 +205,10 @@ function App() {
         setAnswerText(lastCard?.answerText ?? "");
         setQuestionSelection(null);
         setAnswerSelection(null);
+        setQuestionImageDims(null);
+        setAnswerImageDims(null);
+        setQuestionSelectAll(false);
+        setAnswerSelectAll(false);
         setSessionError(null);
       } catch (error) {
         const detail = error instanceof Error ? error.message : "不明なエラー";
@@ -164,6 +246,10 @@ function App() {
         setAnswerText("");
         setQuestionSelection(null);
         setAnswerSelection(null);
+        setQuestionImageDims(null);
+        setAnswerImageDims(null);
+        setQuestionSelectAll(false);
+        setAnswerSelectAll(false);
         setSessionError(null);
       } catch (error) {
         const detail = error instanceof Error ? error.message : "不明なエラー";
@@ -185,7 +271,12 @@ function App() {
 
   return (
     <div className="app-container">
-      <h1>Image2AnkiDeck</h1>
+      <header className="app-header">
+        <h1 className="app-header__title">SnapDeck</h1>
+        <p className="app-header__description">
+          画像から範囲を選択するだけで、Anki フラッシュカードデッキを作成できます。
+        </p>
+      </header>
 
       <div className="field-row">
         <label htmlFor="deck-name" className="field-label">
@@ -284,10 +375,20 @@ function App() {
               <div className="canvas-wrapper">
                 <CanvasSelector
                   imageSrc={questionImageSrc}
-                  onSelect={setQuestionSelection}
+                  onSelect={handleQuestionSelect}
                   selection={questionSelection}
+                  onImageLoad={handleQuestionImageLoad}
                 />
               </div>
+              <label className="select-all-label">
+                <input
+                  type="checkbox"
+                  checked={questionSelectAll}
+                  disabled={!questionImageDims}
+                  onChange={(e) => handleQuestionSelectAllChange(e.target.checked)}
+                />
+                画像全体を選択
+              </label>
               <button
                 className="btn btn--primary"
                 disabled={!canRegisterQuestion}
@@ -308,6 +409,23 @@ function App() {
 
         <div className={`column ${!isQuestionStep ? "column--active" : "column--inactive"}`}>
           <h2 className="column__title">解答（画像 / テキスト）</h2>
+
+          {!isQuestionStep && (questionPreviewImage || questionPreviewText.trim().length > 0) && (
+            <div className="question-preview">
+              <p className="question-preview__label">登録された問題：</p>
+              {questionPreviewImage && (
+                <img
+                  src={questionPreviewImage}
+                  alt="登録済み問題プレビュー"
+                  className="question-preview__img"
+                />
+              )}
+              {questionPreviewText.trim().length > 0 && (
+                <p className="question-preview__text">{questionPreviewText}</p>
+              )}
+            </div>
+          )}
+
           <div className="upload-area">
             <p className="upload-area__label">画像を選択（PNG推奨）：</p>
             <div className="upload-area__buttons">
@@ -357,10 +475,20 @@ function App() {
               <div className="canvas-wrapper">
                 <CanvasSelector
                   imageSrc={answerImageSrc}
-                  onSelect={setAnswerSelection}
+                  onSelect={handleAnswerSelect}
                   selection={answerSelection}
+                  onImageLoad={handleAnswerImageLoad}
                 />
               </div>
+              <label className="select-all-label">
+                <input
+                  type="checkbox"
+                  checked={answerSelectAll}
+                  disabled={!answerImageDims}
+                  onChange={(e) => handleAnswerSelectAllChange(e.target.checked)}
+                />
+                画像全体を選択
+              </label>
               <button
                 className="btn btn--primary"
                 disabled={!canRegisterAnswer}

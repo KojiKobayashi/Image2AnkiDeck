@@ -49,6 +49,7 @@ export function CanvasSelector({
   selection: externalSelection,
   width,
   height,
+  onImageLoad,
 }: CanvasSelectorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -78,6 +79,7 @@ export function CanvasSelector({
       imageRef.current = img;
       canvas.width = width ?? img.naturalWidth;
       canvas.height = height ?? img.naturalHeight;
+      onImageLoad?.(canvas.width, canvas.height);
       renderCanvas();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
