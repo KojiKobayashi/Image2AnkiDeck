@@ -11,6 +11,9 @@ export type Rect = {
   height: number;
 };
 
+/** 画像表示のズーム倍率 */
+export type ZoomLevel = number | "fit";
+
 /** 問題・解答のペア */
 export type Card = {
   id: string;
@@ -52,6 +55,10 @@ export type CanvasSelectorProps = {
   height?: number;
   /** 画像読み込み完了時のコールバック（Canvasのピクセル幅・高さを受け取る） */
   onImageLoad?: (width: number, height: number) => void;
+  /** 表示倍率（fit または 100%ベースの数値倍率） */
+  zoom: ZoomLevel;
+  /** 表示倍率の変更コールバック */
+  onZoomChange: (zoom: ZoomLevel) => void;
 };
 
 /** useSelectionフックの戻り値 */

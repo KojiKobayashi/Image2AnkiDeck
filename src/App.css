@@ -168,19 +168,56 @@ body {
 }
 
 /* ---- Canvasラッパー ---- */
+.canvas-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.canvas-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #d7dde5;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.canvas-toolbar__label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #445;
+}
+
+.canvas-toolbar__value {
+  min-width: 4rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0056b3;
+}
+
+.canvas-toolbar__button {
+  padding: 0.28rem 0.65rem;
+  font-size: 0.82rem;
+}
+
 .canvas-wrapper {
   border: 1px solid #ccc;
   border-radius: 6px;
   overflow: auto;
   background: #fff;
-  max-height: 60vh;
+  width: 100%;
+  height: clamp(280px, 62svh, 720px);
   display: flex;
   align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .canvas-wrapper canvas {
   display: block;
-  max-width: 100%;
+  flex: 0 0 auto;
 }
 
 /* ---- ボタン ---- */

@@ -4,7 +4,7 @@
  * useSelectionフックでロジックを管理し、UIはCanvasへの描画のみを担う。
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelection } from "../hooks/useSelection";
 import type { CanvasSelectorProps, Rect } from "../types";
 
@@ -16,6 +16,10 @@ const SELECTION_STYLE = {
   draftStrokeColor: "rgba(0, 120, 255, 0.6)",
   draftFillColor: "rgba(0, 120, 255, 0.08)",
 } as const;
+
+const ZOOM_STEP = 1.25;
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 4;
 
 /**
  * Canvasに矩形を描画する補助関数。
@@ -50,9 +54,14 @@ export function CanvasSelector({
   width,
   height,
   onImageLoad,
+  zoom,
+  onZoomChange,
 }: CanvasSelectorProps) {
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
+  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
 
   const {
     draft,
@@ -68,6 +77,63 @@ export function CanvasSelector({
   // 外部から制御する場合は外部の値、なければ内部状態を使う
   const activeSelection = externalSelection !== undefined ? externalSelection : internalSelection;
 
+  useEffect(() => {
+    const element = canvasWrapRef.current;
+    if (!element) return;
+
+    const updateSize = () => {
+      setContainerSize({ width: element.clientWidth, height: element.clientHeight });
+    };
+
+    updateSize();
+
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
+
+  const fitScale = useMemo(() => {
+    if (!containerSize || !imageSize) return 1;
+    const scaleX = containerSize.width / imageSize.width;
+    const scaleY = containerSize.height / imageSize.height;
+    return Math.min(scaleX, scaleY);
+  }, [containerSize, imageSize]);
+
+  const displayScale = zoom === "fit" ? fitScale : zoom;
+  const canvasWidth = imageSize?.width ?? 0;
+  const canvasHeight = imageSize?.height ?? 0;
+  const canvasStyle = useMemo(
+    () => ({
+      cursor: "crosshair",
+      display: "block",
+      touchAction: "none",
+      width: `${canvasWidth * displayScale}px`,
+      height: `${canvasHeight * displayScale}px`,
+    }),
+    [canvasHeight, canvasWidth, displayScale]
+  );
+
+  const displayedZoomText = `${Math.round(displayScale * 100)}%`;
+
+  const handleZoomIn = () => {
+    const currentScale = zoom === "fit" ? fitScale : zoom;
+    onZoomChange(Math.min(currentScale * ZOOM_STEP, MAX_ZOOM));
+  };
+
+  const handleZoomOut = () => {
+    const currentScale = zoom === "fit" ? fitScale : zoom;
+    onZoomChange(Math.max(currentScale / ZOOM_STEP, MIN_ZOOM));
+  };
+
+  const handleZoom100 = () => {
+    onZoomChange(1);
+  };
+
+  const handleZoomFit = () => {
+    onZoomChange("fit");
+  };
+
   // 画像の読み込みとCanvasサイズ設定
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -77,8 +143,11 @@ export function CanvasSelector({
     img.src = imageSrc;
     img.onload = () => {
       imageRef.current = img;
-      canvas.width = width ?? img.naturalWidth;
-      canvas.height = height ?? img.naturalHeight;
+      const nextWidth = width ?? img.naturalWidth;
+      const nextHeight = height ?? img.naturalHeight;
+      canvas.width = nextWidth;
+      canvas.height = nextHeight;
+      setImageSize({ width: nextWidth, height: nextHeight });
       onImageLoad?.(canvas.width, canvas.height);
       renderCanvas();
     };
@@ -127,15 +196,35 @@ export function CanvasSelector({
   }
 
   return (
-    <canvas
-      ref={canvasRef}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      style={{ cursor: "crosshair", maxWidth: "100%", display: "block", touchAction: "none" }}
-    />
+    <div className="canvas-panel">
+      <div className="canvas-toolbar" aria-label="画像表示倍率の操作">
+        <span className="canvas-toolbar__label">表示倍率</span>
+        <span className="canvas-toolbar__value">{displayedZoomText}</span>
+        <button type="button" className="btn btn--secondary canvas-toolbar__button" onClick={handleZoomOut}>
+          -
+        </button>
+        <button type="button" className="btn btn--secondary canvas-toolbar__button" onClick={handleZoomIn}>
+          +
+        </button>
+        <button type="button" className="btn btn--secondary canvas-toolbar__button" onClick={handleZoom100}>
+          100%
+        </button>
+        <button type="button" className="btn btn--secondary canvas-toolbar__button" onClick={handleZoomFit}>
+          Fit
+        </button>
+      </div>
+      <div className="canvas-wrapper" ref={canvasWrapRef}>
+        <canvas
+          ref={canvasRef}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          style={canvasStyle}
+        />
+      </div>
+    </div>
   );
 }
