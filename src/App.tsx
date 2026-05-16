@@ -12,7 +12,7 @@ import { cropImage } from "./services/imageCropper";
 import { loadDeckApkgAsSession } from "./services/fileManager";
 import { downloadSession, loadSession } from "./services/sessionManager";
 import { downloadDeckZip, sanitizeFileBaseName } from "./services/zipExporter";
-import type { Rect, Session } from "./types";
+import type { Rect, Session, ZoomLevel } from "./types";
 import "./App.css";
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -39,6 +39,8 @@ function App() {
   const [answerText, setAnswerText] = useState<string>("");
   const [questionSelection, setQuestionSelection] = useState<Rect | null>(null);
   const [answerSelection, setAnswerSelection] = useState<Rect | null>(null);
+  const [questionZoom, setQuestionZoom] = useState<ZoomLevel>("fit");
+  const [answerZoom, setAnswerZoom] = useState<ZoomLevel>("fit");
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [zipError, setZipError] = useState<string | null>(null);
 
@@ -66,6 +68,7 @@ function App() {
         setQuestionSelection(null);
         setQuestionImageDims(null);
         setQuestionSelectAll(false);
+        setQuestionZoom("fit");
       } catch (error) {
         const detail = error instanceof Error ? error.message : "不明なエラー";
         setSessionError(`問題画像の読み込みに失敗しました: ${detail}`);
@@ -84,6 +87,7 @@ function App() {
         setAnswerSelection(null);
         setAnswerImageDims(null);
         setAnswerSelectAll(false);
+        setAnswerZoom("fit");
       } catch (error) {
         const detail = error instanceof Error ? error.message : "不明なエラー";
         setSessionError(`解答画像の読み込みに失敗しました: ${detail}`);
@@ -209,6 +213,8 @@ function App() {
         setAnswerImageDims(null);
         setQuestionSelectAll(false);
         setAnswerSelectAll(false);
+        setQuestionZoom("fit");
+        setAnswerZoom("fit");
         setSessionError(null);
       } catch (error) {
         const detail = error instanceof Error ? error.message : "不明なエラー";
@@ -250,6 +256,8 @@ function App() {
         setAnswerImageDims(null);
         setQuestionSelectAll(false);
         setAnswerSelectAll(false);
+        setQuestionZoom("fit");
+        setAnswerZoom("fit");
         setSessionError(null);
       } catch (error) {
         const detail = error instanceof Error ? error.message : "不明なエラー";
@@ -372,14 +380,14 @@ function App() {
 
           {questionImageSrc ? (
             <>
-              <div className="canvas-wrapper">
-                <CanvasSelector
-                  imageSrc={questionImageSrc}
-                  onSelect={handleQuestionSelect}
-                  selection={questionSelection}
-                  onImageLoad={handleQuestionImageLoad}
-                />
-              </div>
+              <CanvasSelector
+                imageSrc={questionImageSrc}
+                onSelect={handleQuestionSelect}
+                selection={questionSelection}
+                onImageLoad={handleQuestionImageLoad}
+                zoom={questionZoom}
+                onZoomChange={setQuestionZoom}
+              />
               <label className="select-all-label">
                 <input
                   type="checkbox"
@@ -472,14 +480,14 @@ function App() {
 
           {answerImageSrc ? (
             <>
-              <div className="canvas-wrapper">
-                <CanvasSelector
-                  imageSrc={answerImageSrc}
-                  onSelect={handleAnswerSelect}
-                  selection={answerSelection}
-                  onImageLoad={handleAnswerImageLoad}
-                />
-              </div>
+              <CanvasSelector
+                imageSrc={answerImageSrc}
+                onSelect={handleAnswerSelect}
+                selection={answerSelection}
+                onImageLoad={handleAnswerImageLoad}
+                zoom={answerZoom}
+                onZoomChange={setAnswerZoom}
+              />
               <label className="select-all-label">
                 <input
                   type="checkbox"
