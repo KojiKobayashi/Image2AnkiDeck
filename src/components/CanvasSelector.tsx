@@ -57,7 +57,6 @@ export function CanvasSelector({
   zoom,
   onZoomChange,
 }: CanvasSelectorProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -197,7 +196,7 @@ export function CanvasSelector({
   }
 
   return (
-    <div className="canvas-panel" ref={panelRef}>
+    <div className="canvas-panel">
       <div className="canvas-toolbar" aria-label="画像表示倍率の操作">
         <span className="canvas-toolbar__label">表示倍率</span>
         <span className="canvas-toolbar__value">{displayedZoomText}</span>
