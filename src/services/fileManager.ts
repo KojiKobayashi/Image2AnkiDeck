@@ -6,8 +6,6 @@ import { normalizeDeckUuid } from "../utils/deckUuid";
 import { generateId } from "../utils/idGenerator";
 
 const DEFAULT_DECK_NAME = "deck";
-const APKG_CARD_ID_PREFIX = "apkg-";
-const APKG_CARD_ID_PADDING = 6;
 const DEFAULT_CARD_NUMBER_PADDING = 4;
 const MAX_CARD_NUMBER_PADDING = 12;
 const CSV_HEADER_PATTERN = /^front,back$/i;
@@ -224,11 +222,11 @@ export async function loadDeckApkgAsSession(deckZipFile: File): Promise<Session>
     }
 
     const rows = db.exec(
-      "SELECT cards.id, notes.flds FROM cards JOIN notes ON notes.id = cards.nid ORDER BY cards.due ASC, cards.id ASC"
+      "SELECT cards.id, notes.flds, notes.guid FROM cards JOIN notes ON notes.id = cards.nid ORDER BY cards.due ASC, cards.id ASC"
     );
     if (rows.length > 0) {
       for (const row of rows[0].values) {
-        const [, fieldsRaw] = row;
+        const [, fieldsRaw, guidRaw] = row;
         const [frontRaw, backRaw] = String(fieldsRaw).split(FIELD_SEPARATOR);
         const front = frontRaw ?? "";
         const back = backRaw ?? "";
@@ -262,8 +260,10 @@ export async function loadDeckApkgAsSession(deckZipFile: File): Promise<Session>
           continue;
         }
 
+        const originalGuid = typeof guidRaw === "string" && guidRaw.trim().length > 0 ? guidRaw.trim() : null;
+
         cards.push({
-          id: `${APKG_CARD_ID_PREFIX}${String(cards.length + 1).padStart(APKG_CARD_ID_PADDING, "0")}`,
+          id: originalGuid ?? generateId(),
           questionRect: questionSize ? { x: 0, y: 0, w: questionSize.width, h: questionSize.height } : null,
           answerRect: answerSize ? { x: 0, y: 0, w: answerSize.width, h: answerSize.height } : null,
           questionImageSrc,

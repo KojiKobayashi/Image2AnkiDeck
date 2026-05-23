@@ -196,10 +196,6 @@ function sanitizeDeckNameForAnki(deckName: string): string {
   return trimmed.length > 0 ? trimmed : "Default";
 }
 
-function sanitizeForIdentifier(value: string): string {
-  return value.replaceAll(/[^A-Za-z0-9]/g, "").slice(0, 16) || "guid";
-}
-
 export function sanitizeFileBaseName(name: string): string {
   // C0 (0-31), DEL (127), C1 (128-159) control characters
   const withoutControlChars = Array.from(name)
@@ -340,7 +336,7 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
 
         const { front, back } = buildCardHtml(card, mediaNames);
         const noteId = noteIdBase + offset;
-        const guid = sanitizeForIdentifier(card.id);
+        const guid = card.id;
         const fields = `${front}${FIELD_SEPARATOR}${back}`;
         const checksum = hash32(front);
 
