@@ -340,7 +340,7 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
 
         const { front, back } = buildCardHtml(card, mediaNames);
         const noteId = noteIdBase + offset;
-        const guid = sanitizeForIdentifier(`${deckPrefix}-${sequence}-${noteId.toString(36)}`);
+        const guid = sanitizeForIdentifier(card.id);
         const fields = `${front}${FIELD_SEPARATOR}${back}`;
         const checksum = hash32(front);
 
