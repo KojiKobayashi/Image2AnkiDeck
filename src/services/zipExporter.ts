@@ -315,7 +315,7 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
         const mediaNames: { question?: string; answer?: string } = {};
 
         if (card.questionImage) {
-          const questionName = toMediaFileName("q", sequence, padding, deckPrefix);
+          const questionName = card.questionMediaName ?? toMediaFileName("q", sequence, padding, deckPrefix);
           const questionBlob = await dataUrlToPngBlob(card.questionImage);
           const mediaId = String(mediaIndex);
           templateZip.file(mediaId, questionBlob);
@@ -325,7 +325,7 @@ export async function createDeckZip(cards: Card[], options: ZipExportOptions = {
         }
 
         if (card.answerImage) {
-          const answerName = toMediaFileName("a", sequence, padding, deckPrefix);
+          const answerName = card.answerMediaName ?? toMediaFileName("a", sequence, padding, deckPrefix);
           const answerBlob = await dataUrlToPngBlob(card.answerImage);
           const mediaId = String(mediaIndex);
           templateZip.file(mediaId, answerBlob);

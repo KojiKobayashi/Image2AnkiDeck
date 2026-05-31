@@ -151,6 +151,8 @@ export function useCardRegistration(): UseCardRegistrationReturn {
             questionText: sessionCard.questionText,
             answerImage,
             answerText: sessionCard.answerText,
+            questionMediaName: sessionCard.questionMediaName,
+            answerMediaName: sessionCard.answerMediaName,
           };
         } catch (error) {
           const detail = error instanceof Error ? error.message : "不明なエラー";

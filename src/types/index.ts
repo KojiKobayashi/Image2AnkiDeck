@@ -21,6 +21,10 @@ export type Card = {
   questionText: string;
   answerImage: string | null;
   answerText: string;
+  /** 既存APKGから読み込んだ場合の元の問題画像ファイル名（sfld保持のため） */
+  questionMediaName?: string;
+  /** 既存APKGから読み込んだ場合の元の解答画像ファイル名（sfld保持のため） */
+  answerMediaName?: string;
 };
 
 /** セッション保存形式のカード */
@@ -32,6 +36,10 @@ export type SessionCard = {
   questionText: string;
   answerImageSrc: string | null;
   answerText: string;
+  /** 既存APKGから読み込んだ場合の元の問題画像ファイル名（sfld保持のため） */
+  questionMediaName?: string;
+  /** 既存APKGから読み込んだ場合の元の解答画像ファイル名（sfld保持のため） */
+  answerMediaName?: string;
 };
 
 /** セッション保存形式 */
