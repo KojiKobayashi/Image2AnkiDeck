@@ -64,6 +64,12 @@ function assertValidSession(value: unknown): asserts value is Session {
     ) {
       throw new Error("カードの必須項目が不足しています");
     }
+    if (
+      (card.questionMediaName !== undefined && typeof card.questionMediaName !== "string") ||
+      (card.answerMediaName !== undefined && typeof card.answerMediaName !== "string")
+    ) {
+      throw new Error("メディア名が不正です");
+    }
     if (!isValidRect(card.questionRect) || !isValidRect(card.answerRect)) {
       throw new Error("矩形情報が不正です");
     }

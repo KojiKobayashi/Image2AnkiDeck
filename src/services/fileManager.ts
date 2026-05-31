@@ -270,6 +270,8 @@ export async function loadDeckApkgAsSession(deckZipFile: File): Promise<Session>
           questionText,
           answerImageSrc,
           answerText,
+          questionMediaName: questionImageName ?? undefined,
+          answerMediaName: answerImageName ?? undefined,
         });
       }
     }
