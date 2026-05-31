@@ -4,6 +4,7 @@
  */
 
 import type { Card } from "../types";
+import { sortCardsNewestFirst } from "../utils/cardSort";
 
 type PreviewListProps = {
   cards: Card[];
@@ -21,7 +22,7 @@ export function PreviewList({ cards, onRemove }: PreviewListProps) {
     <div className="preview-list">
       <h2 className="preview-list__title">登録済みカード（{cards.length}件）</h2>
       <ul className="preview-list__items">
-        {cards.map((card, index) => (
+        {sortCardsNewestFirst(cards).map((card, index) => (
           <li key={card.id} className="preview-card">
             <span className="preview-card__index">#{index + 1}</span>
             <div className="preview-card__images">
